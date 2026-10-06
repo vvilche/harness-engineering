@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clase: Cómo se construye un agente de IA — Anatomía, patrones y decisiones</title>
+<style>
+:root{
+  --bg:#f8fafc; --white:#ffffff; --dark:#0f172a; --dark2:#1e293b; --border:#334155;
+  --text:#0f172a; --muted:#64748b; --muted2:#94a3b8; --accent:#2563eb; --accent-soft:#eff6ff;
+  --ok:#16a34a; --ok-soft:#f0fdf4; --bad:#dc2626; --bad-soft:#fef2f2;
+  --warn:#d97706; --warn-soft:#fffbeb; --violet:#7c3aed; --violet-soft:#f5f3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'IBM Plex Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.layout{display:grid; grid-template-columns:290px 1fr; min-height:100vh}
+
+/* ---------- NAV ---------- */
+nav{
+  position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+  background:var(--dark); color:#e2e8f0; padding:26px 20px 40px;
+}
+nav .brand{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#64748b; font-weight:600}
+nav h1{font-size:19px; font-weight:400; line-height:1.3; margin:10px 0 6px; color:#f8fafc}
+nav .sub{font-size:12px; color:#94a3b8; line-height:1.5; margin-bottom:22px}
+nav .grp{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#475569; font-weight:700; margin:20px 0 8px}
+nav a{
+  display:block; font-size:13.5px; color:#cbd5e1; text-decoration:none;
+  padding:8px 11px; border-radius:6px; margin-bottom:2px; line-height:1.4;
+  border-left:2px solid transparent; transition:.14s;
+}
+nav a:hover{background:var(--dark2); color:#fff; border-left-color:var(--accent)}
+nav a .n{display:inline-block; width:20px; color:#64748b; font-variant-numeric:tabular-nums}
+nav a.foot{margin-top:22px; font-size:12px; color:#64748b}
+
+/* ---------- MAIN ---------- */
+main{max-width:960px; padding:52px 56px 120px}
+section{margin-bottom:72px; scroll-margin-top:24px}
+.sec-num{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent);
+  font-weight:700; margin-bottom:8px;
+}
+h2{font-size:33px; font-weight:400; letter-spacing:-.015em; line-height:1.2; margin-bottom:14px}
+h3{font-size:21px; font-weight:600; margin:34px 0 12px; line-height:1.3}
+h4{font-size:16px; font-weight:700; margin:24px 0 8px; color:var(--dark)}
+p{margin-bottom:15px; max-width:74ch}
+ul,ol{margin:0 0 16px 22px; max-width:74ch}
+li{margin-bottom:8px}
+strong{font-weight:700}
+em{font-style:italic; color:var(--muted)}
+code{
+  font-family:'IBM Plex Mono','SF Mono',Menlo,monospace; font-size:13.5px;
+  background:#e2e8f0; padding:2px 6px; border-radius:4px; color:#1e293b;
+}
+.lead{font-size:18.5px; line-height:1.62; color:#334155; max-width:72ch; margin-bottom:26px}
+
+/* ---------- COMPONENTES ---------- */
+.card{background:var(--white); border:1px solid #e2e8f0; border-radius:10px; padding:22px 24px; margin-bottom:18px}
+.card.accent{border-left:4px solid var(--accent); background:var(--accent-soft); border-color:#bfdbfe}
+.card.ok{border-left:4px solid var(--ok); background:var(--ok-soft); border-color:#bbf7d0}
+.card.bad{border-left:4px solid var(--bad); background:var(--bad-soft); border-color:#fecaca}
+.card.warn{border-left:4px solid var(--warn); background:var(--warn-soft); border-color:#fde68a}
+.card.violet{border-left:4px solid var(--violet); background:var(--violet-soft); border-color:#ddd6fe}
+.card h4{margin-top:0}
+.card p:last-child,.card ul:last-child,.card ol:last-child{margin-bottom:0}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px}
+@media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+
+table{width:100%; border-collapse:collapse; margin:18px 0 24px; font-size:14.5px; background:var(--white)}
+th{
+  text-align:left; padding:11px 13px; background:var(--dark); color:#f1f5f9;
+  font-weight:600; font-size:12.5px; letter-spacing:.03em; border:1px solid var(--dark);
+}
+td{padding:11px 13px; border:1px solid #e2e8f0; vertical-align:top; line-height:1.55}
+tbody tr:nth-child(even){background:#f8fafc}
+td code{font-size:12.5px; background:#e2e8f0}
+
+.kpi{background:var(--white); border:1px solid #e2e8f0; border-radius:10px; padding:18px 20px; text-align:center}
+.kpi .big{font-size:34px; font-weight:700; color:var(--accent); line-height:1.1; font-variant-numeric:tabular-nums}
+.kpi .lab{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.45}
+
+.tag{
+  display:inline-block; background:var(--accent); color:#fff; padding:3px 11px;
+  border-radius:4px; font-size:12px; font-weight:600; letter-spacing:.02em; margin-right:6px;
+}
+.tag.gray{background:#64748b}
+.tag.ok{background:var(--ok)}
+.tag.bad{background:var(--bad)}
+.tag.warn{background:var(--warn)}
+.tag.violet{background:var(--violet)}
+
+.src{font-size:12.5px; color:var(--muted); border-top:1px solid #e2e8f0; padding-top:10px; margin-top:26px; line-height:1.55}
+.src strong{color:#475569}
+
+/* ---------- SVG ---------- */
+.svgwrap{background:var(--white); border:1px solid #e2e8f0; border-radius:10px; padding:20px; margin:22px 0; overflow-x:auto}
+svg{display:block; margin:0 auto; max-width:100%; height:auto}
+.figcap{font-size:13px; color:var(--muted); text-align:center; margin-top:12px; line-height:1.5}
+
+/* ---------- TESTEO ---------- */
+.q{background:var(--white); border:1px solid #e2e8f0; border-radius:10px; padding:20px 22px; margin-bottom:14px}
+.q .qh{font-weight:600; margin-bottom:12px; font-size:15.5px}
+.q label{display:block; padding:9px 13px; border:1px solid #e2e8f0; border-radius:7px; margin-bottom:7px; cursor:pointer; font-size:14.5px; transition:.12s; background:#fff}
+.q label:hover{background:var(--accent-soft); border-color:#bfdbfe}
+.q input{margin-right:9px}
+.q label.correct{background:var(--ok-soft); border-color:var(--ok); font-weight:600}
+.q label.wrong{background:var(--bad-soft); border-color:var(--bad)}
+.q .why{font-size:13.5px; color:var(--muted); margin-top:9px; display:none; padding-left:13px; border-left:3px solid #cbd5e1; line-height:1.55}
+.q .why.show{display:block}
+button{
+  background:var(--accent); color:#fff; border:none; padding:13px 28px; border-radius:7px;
+  font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; transition:.15s;
+}
+button:hover{background:#1d4ed8}
+button.ghost{background:#fff; color:var(--accent); border:1.5px solid var(--accent)}
+button.ghost:hover{background:var(--accent-soft)}
+#score{
+  margin-top:18px; padding:20px 24px; border-radius:10px; font-size:16px;
+  background:var(--dark); color:#f1f5f9; display:none; line-height:1.6;
+}
+#score.show{display:block}
+#score .n{font-size:30px; font-weight:700; color:#60a5fa}
+.glosario-link{margin:-8px 0 22px; font-size:13.5px}
+.glosario-link a{color:var(--muted); text-decoration:none; border-bottom:1px dotted #94a3b8; padding-bottom:1px}
+.glosario-link a:hover{color:var(--accent); border-bottom-color:var(--accent)}
+h2 span.term{font-size:22px; font-weight:400; color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav>
+  <div class="brand">Academia CONECTA</div>
+  <h1>Cómo se construye un agente de IA</h1>
+  <div class="sub">Anatomía, patrones y decisiones de los 12 sistemas de producción mejor documentados del mundo. Basado en arXiv:2609.00006v1 (julio 2026).</div>
+
+  <div class="grp">Empezar acá</div>
+  <a href="#s0"><span class="n">0</span>Glosario: lo que hay que saber</a>
+
+  <div class="grp">Fundamentos</div>
+  <a href="#s1"><span class="n">1</span>Qué es un agente</a>
+  <a href="#s2"><span class="n">2</span>Las dos ausencias</a>
+
+  <div class="grp">Anatomía</div>
+  <a href="#s3"><span class="n">3</span>Los 7 subsistemas</a>
+  <a href="#s4"><span class="n">4</span>El piso: 100 líneas</a>
+
+  <div class="grp">Decisiones</div>
+  <a href="#s5"><span class="n">5</span>El bucle</a>
+  <a href="#s6"><span class="n">6</span>Memoria y contexto</a>
+  <a href="#s7"><span class="n">7</span>Seguridad y permisos</a>
+  <a href="#s8"><span class="n">8</span>Orquestación</a>
+  <a href="#s9"><span class="n">9</span>Extensibilidad</a>
+
+  <div class="grp">Cierre</div>
+  <a href="#s10"><span class="n">10</span>Qué construir y qué no</a>
+  <a href="#testeo">Demostrar aprendizaje</a>
+  <a href="#fichas">Los 12 sistemas</a>
+  <a href="#fuentes">Fuentes</a>
+
+  <a class="foot" href="acp-analisis.md">Análisis ACP →</a>
+  <a class="foot" href="anexo-conecta.md">Anexo comercial →</a>
+</nav>
+
+<main>
+
+<!-- ============ 0 GLOSARIO ============ -->
+<section id="s0">
+  <div class="sec-num">Bloque 0 · Empezar acá</div>
+  <h2>Glosario: lo que hay que saber antes de seguir</h2>
+  <p class="lead">Si vienes de automatización y control, ya manejas la mitad de los conceptos —solo que con otro nombre. Este bloque traduce.</p>
+
+  <div class="card accent">
+    <p style="margin-bottom:0">Ninguno de estos términos requiere saber programar. Todos son vocabulario que se usa en la clase. Si más adelante topas con uno que no está acá, avísame y lo agrego.</p>
+  </div>
+
+  <h3>Lo básico: qué hace un modelo de lenguaje</h3>
+  <table>
+    <tr><th style="width:24%">Término</th><th>Qué es, en palabras simples</th></tr>
+    <tr>
+      <td><strong>LLM</strong><br><em>modelo de lenguaje</em></td>
+      <td>Un programa entrenado con enormes cantidades de texto que, dado un texto de entrada, predice cuál es la continuación más plausible. No "piensa" ni "consulta una base de datos": genera texto. Cuando le pides algo, está completando el texto de la forma más probable según lo que aprendió. Todos los agentes de esta clase se construyen sobre uno de estos.</td>
+    </tr>
+    <tr>
+      <td><strong>Inferencia</strong></td>
+      <td>El acto de pedirle al modelo que genere una respuesta. Es la operación que se cobra. Cada vez que el agente "piensa", hay una inferencia detrás. Se mide en <em>tokens</em> y se factura por token.</td>
+    </tr>
+    <tr>
+      <td><strong>Token</strong></td>
+      <td>La unidad mínima de texto que el modelo procesa. No es una letra ni una palabra: es un fragmento. "subestación" puede ser dos o tres tokens. Se usa para medir tres cosas: cuánto texto cabe en la "memoria de trabajo" del modelo (la <em>ventana de contexto</em>), cuánto cuesta cada llamada, y cuán llena está esa memoria.</td>
+    </tr>
+    <tr>
+      <td><strong>Ventana de contexto</strong></td>
+      <td>El máximo de tokens que el modelo puede tener "a la vista" en una sola llamada —el equivalente a su memoria de trabajo. Todo lo que el agente sabe en ese momento tiene que caber ahí: las instrucciones, la conversación, los documentos leídos, los resultados de las herramientas. Cuando se llena, hay que decidir qué tirar. <strong>Ese problema es el corazón de la clase.</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Prompt</strong></td>
+      <td>El texto que se le entrega al modelo en cada llamada. Tiene partes: las <em>instrucciones</em> fijas (quién es el agente y qué debe hacer) y el contenido variable (la conversación, los datos). Se le dice "prompt" a todo el paquete que entra de una vez.</td>
+    </tr>
+    <tr>
+      <td><strong>System prompt</strong></td>
+      <td>La parte fija del prompt: las instrucciones permanentes que definen al agente. Se arma una vez y se reutiliza. En la clase aparece mucho porque varios sistemas lo optimizan para que las cachés funcionen.</td>
+    </tr>
+    <tr>
+      <td><strong>Tool / herramienta</strong></td>
+      <td>Una capacidad concreta que el agente puede ejecutar: leer un archivo, correr un comando, consultar una base de datos. El modelo no ejecuta nada por sí solo —<em>pide</em> una herramienta y el sistema la ejecuta. Es el mecanismo por el cual el agente toca el mundo real.</td>
+    </tr>
+    <tr>
+      <td><strong>Tool call</strong><br><em>llamada a herramienta</em></td>
+      <td>El acto concreto de pedir una herramienta. El agente decide "necesito leer este archivo", emite una llamada, el sistema la ejecuta y le devuelve el resultado. Un turno de trabajo son varias llamadas encadenadas.</td>
+    </tr>
+    <tr>
+      <td><strong>Alucinación</strong></td>
+      <td>Cuando el modelo genera algo que suena correcto pero es falso. Ocurre porque está prediciendo texto plausible, no consultando una fuente. Es la razón por la que un agente industrial <strong>no puede reportar un dato sin extraerlo de la fuente</strong>: si no lo lee, lo inventa.</td>
+    </tr>
+  </table>
+
+  <h3>El vocabulario de los agentes</h3>
+  <table>
+    <tr><th style="width:24%">Término</th><th>Qué es, en palabras simples</th></tr>
+    <tr>
+      <td><strong>Agente</strong></td>
+      <td>Un modelo de lenguaje + el sistema que lo hace actuar sobre el mundo. Solo, el modelo conversa. Con el sistema alrededor, lee, ejecuta, decide y repite hasta terminar una tarea.</td>
+    </tr>
+    <tr>
+      <td><strong>Harness</strong></td>
+      <td>El sistema que rodea al modelo: el bucle, las herramientas, el manejo del contexto, la seguridad, las extensiones. Es <em>todo lo que no es el modelo</em>. El término central de la clase: el estudio que la origina analiza 12 de estos en producción.</td>
+    </tr>
+    <tr>
+      <td><strong>Scaffold</strong><br><em>andamiaje</em></td>
+      <td>Casi sinónimo de harness. Donde hay diferencia: <em>scaffold</em> es el código estructural (el bucle, las herramientas); <em>harness</em> es el producto terminado que lo incluye, con interfaz y sistema de permisos. Un scaffold puede ser 100 líneas; un harness es un producto.</td>
+    </tr>
+    <tr>
+      <td><strong>Bucle</strong><br><em>loop</em></td>
+      <td>El corazón del agente: el ciclo que se repite —pensar, actuar, observar, pensar otra vez— hasta que la tarea está hecha o algo lo detiene. Cada vuelta del ciclo es una llamada al modelo. Es la pieza que más varía entre sistemas, y el bloque 5 la desarma.</td>
+    </tr>
+    <tr>
+      <td><strong>Sub-agente</strong></td>
+      <td>Un agente que otro agente lanza para hacer una parte del trabajo. El principal le encarga algo, el sub-agente lo hace y devuelve el resultado. Sirve para investigar varias cosas a la vez o para aislar contexto. Cuesta mucho más (aproximadamente 15 veces más tokens).</td>
+    </tr>
+    <tr>
+      <td><strong>Contexto</strong></td>
+      <td>Todo lo que el agente tiene disponible para decidir en este momento: la conversación, los archivos que leyó, las instrucciones, los resultados previos. Cuando se llena, el sistema tiene que decidir qué resumir y qué botar. Ese proceso se llama <em>compactación</em>.</td>
+    </tr>
+    <tr>
+      <td><strong>Compactación</strong></td>
+      <td>La técnica de resumir el historial cuando se llena el contexto, para que la conversación siga sin perder lo importante. Resumir bien o mal es la diferencia entre un agente que recuerda por qué tomó una decisión y uno que la olvida.</td>
+    </tr>
+    <tr>
+      <td><strong>Skill</strong><br><em>habilidad</em></td>
+      <td>Una unidad de conocimiento empaquetada en una carpeta: instrucciones, procedimientos, y opcionalmente scripts. El agente la descubre y la lee cuando le sirve. Es la forma actual de enseñarle un procedimiento nuevo sin tocar el programa. Ganó la competencia como estándar de extensibilidad.</td>
+    </tr>
+    <tr>
+      <td><strong>Hook</strong><br><em>gancho</em></td>
+      <td>Un punto de enganche donde el sistema avisa "estoy por hacer X" y permite interceptarlo: bloquear una acción, pedir permiso, registrar lo que pasó. Es la forma de meter reglas propias en el flujo del agente sin modificar el agente.</td>
+    </tr>
+    <tr>
+      <td><strong>Sandbox</strong><br><em>caja de aislamiento</em></td>
+      <td>Un entorno aislado donde el agente ejecuta acciones, de modo que no pueda tocar nada fuera de lo permitido. Es lo que separa un agente que puede probarse de uno que puede desplegarse. En la clase aparece como una <em>decisión</em> de diseño, no como una consecuencia del tamaño del sistema.</td>
+    </tr>
+    <tr>
+      <td><strong>Prompt injection</strong><br><em>inyección de prompt</em></td>
+      <td>El ataque donde un texto que el agente lee —un archivo, una página web, un correo— contiene instrucciones disfrazadas de contenido, y el agente las obedece. Es el riesgo de seguridad propio de los agentes: si el agente lee un manual envenenado, el manual puede darle órdenes. La defensa es tratar todo contenido externo como dato, nunca como instrucción.</td>
+    </tr>
+  </table>
+
+  <h3>Los dos "protocolos de cable" y las siglas de la clase</h3>
+  <p>Estos son formatos de comunicación entre programas. No hay que saber implementarlos: hay que saber <em>para qué sirve cada uno</em>, porque la clase los compara.</p>
+  <table>
+    <tr><th style="width:14%">Sigla</th><th style="width:24%">Nombre</th><th>Para qué sirve</th></tr>
+    <tr>
+      <td><strong>MCP</strong></td>
+      <td>Model Context Protocol</td>
+      <td>Un formato estándar para que el agente hable con <strong>programas externos</strong>: una base de datos, Slack, una API interna. Es el enchufe universal para conectar herramientas que viven fuera del agente. <em>8 de 12 sistemas de la clase lo usan.</em></td>
+    </tr>
+    <tr>
+      <td><strong>ACP</strong></td>
+      <td>Agent Client Protocol</td>
+      <td>Un formato estándar para que <strong>un programa maneje a un agente</strong>: un editor, una interfaz propia, otro agente. Es la puerta de entrada al agente. <em>6 de 12 lo implementan, y la clase explica por qué eso importa comercialmente.</em> (Ojo: existe otro ACP, de IBM, que ya no se usa. Son cosas distintas.)</td>
+    </tr>
+    <tr>
+      <td><strong>A2A</strong></td>
+      <td>Agent-to-Agent</td>
+      <td>Un formato para que <strong>dos agentes de proveedores distintos</strong> se hablen entre sí. Solo un sistema de la clase lo implementa, y es una apuesta: todavía nadie demuestra que haga falta.</td>
+    </tr>
+    <tr>
+      <td><strong>RAG</strong></td>
+      <td>Retrieval-Augmented Generation</td>
+      <td>La técnica de buscar información relevante antes de responder, en vez de confiar en lo que el modelo memorizó. Hay dos formas: <strong>por significado</strong> (embeddings) y <strong>por coincidencia exacta</strong> (buscar la palabra). La clase dedica su bloque 2 a por qué los 12 sistemas <em>no</em> usan la primera para leer código. <em>RAG = "buscar antes de responder".</em></td>
+    </tr>
+    <tr>
+      <td><strong>Embedding</strong></td>
+      <td>Una representación numérica de un texto que captura su significado, de modo que dos textos parecidos quedan cerca. Es la base de la búsqueda "por significado": se compara el número, no la palabra. <em>Ninguno de los 12 sistemas lo usa para leer código.</em></td>
+    </tr>
+    <tr>
+      <td><strong>Framework</strong><br><em>marco de trabajo</em></td>
+      <td>Una librería armada por terceros que trae piezas pre-hechas para construir agentes (LangChain es el ejemplo más conocido). La clase documenta que <strong>ninguno de los 12 sistemas de producción usa uno</strong>: todos construyen sus propias piezas.</td>
+    </tr>
+    <tr>
+      <td><strong>Caché</strong></td>
+      <td>Guardar el resultado de un cálculo para no repetirlo. En agentes se usa sobre el prompt: si la parte fija no cambió, el proveedor la cobra más barato la segunda vez. Por eso varios sistemas <strong>ordenan el prompt</strong> para que el principio nunca cambie —es una optimización de dinero, no de estética.</td>
+    </tr>
+    <tr>
+      <td><strong>CEN / Coordinador</strong></td>
+      <td>El Coordinador Eléctrico Nacional. Aparece en el anexo comercial, no en la clase.</td>
+    </tr>
+  </table>
+
+  <div class="card ok">
+    <h4>La traducción al mundo que ya conoces</h4>
+    <table style="margin-bottom:0">
+      <tr><th style="width:38%">Concepto de agentes</th><th>Lo que se le parece en tu mundo</th></tr>
+      <tr><td><strong>Ventana de contexto</strong></td><td>La memoria de un PLC: finita, y cuando se llena hay que decidir qué descartar</td></tr>
+      <tr><td><strong>Tool call</strong></td><td>Una lectura o una orden que sale del controlador hacia un equipo</td></tr>
+      <tr><td><strong>Harness</strong></td><td>El conjunto SCADA + RTU + redes que hace útil a un equipo; el modelo sería el equipo</td></tr>
+      <tr><td><strong>Sandbox</strong></td><td>El modo prueba o el enclavamiento: opera, pero no puede tocar lo real</td></tr>
+      <tr><td><strong>Hook</strong></td><td>La lógica de enclavamiento que intercepta una orden antes de que salga</td></tr>
+      <tr><td><strong>Prompt injection</strong></td><td>Un documento que entra igual que un dato pero trae una orden adentro</td></tr>
+      <tr><td><strong>Compactación</strong></td><td>El resumen de eventos que queda en el registro histórico: conserva lo que importa, descarta el resto</td></tr>
+    </table>
+  </div>
+
+  <div class="card warn">
+    <h4>Dos advertencias sobre las analogías</h4>
+    <p style="margin-bottom:0">Las de la tabla son <strong>puentes de entrada</strong>, no definiciones. Sirven para ubicarse la primera vez, y algunas se rompen si se estiran —un sandbox es más parecido a un enclavamiento lógico que a una jaula, y la ventana de contexto es mucho más frágil que una memoria de PLC. Donde la analogía no calce con tu experiencia en terreno, la analogía está mal, no el concepto: avísame y la cambié.</p>
+  </div>
+
+  <div class="src"><strong>Nota:</strong> este glosario cubre vocabulario de IA y agentes. Los nombres de sistemas concretos (Claude Code, Codex, OpenHands, Hermes…) se explican donde aparecen, no acá.</div>
+</section>
+
+<!-- ============ 1 ============ -->
+<section id="s1">
+  <div class="sec-num">Bloque 1</div>
+  <h2>Qué es un agente</h2>
+  <p class="lead">La definición que ordena todo lo demás, y que la industria adoptó en 2026.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <div class="card accent">
+    <h4>Agente = Modelo + Harness</h4>
+    <p>El <strong>modelo</strong> aporta la inteligencia. El <strong>harness</strong> convierte esa inteligencia en trabajo.</p>
+    <p>El harness es <em>todo lo que no es el modelo</em>: el runtime que conecta un LLM al mundo a través de un bucle, herramientas, manejo de contexto, controles de seguridad, orquestación y superficies de extensión.</p>
+  </div>
+
+  <p>La palabra se acuñó en un blog de vendor en febrero de 2026 y en cinco meses pasó a ser una disciplina con guías de práctica, definiciones formales, sistemas de evolución automática y su propia genealogía en arXiv. Lo que <em>no</em> existía era una referencia: un relato, apoyado en código fuente de producción, de qué es un harness y cómo difieren las implementaciones líderes.</p>
+
+  <p>Ese es el documento que estamos estudiando. Analiza <strong>11 harnesses de producción más 1 meta-harness</strong>, fijados a releases de julio de 2026, en tres lenguajes (Python, TypeScript, Rust) y tres órdenes de magnitud de tamaño de código.</p>
+
+  <h3>Qué NO es un harness</h3>
+  <table>
+    <tr><th style="width:34%">Concepto</th><th>Por qué se confunde, y cuál es la diferencia</th></tr>
+    <tr><td><strong>Un framework</strong> (LangChain, AutoGen)</td><td>Un framework es una librería que el desarrollador <em>importa</em> para <em>construir</em> un agente. Un harness es un runtime dentro del cual el desarrollador <em>trabaja</em>. En 2026 esa frontera se disolvió, y volveremos sobre eso.</td></tr>
+    <tr><td><strong>Un harness de evaluación</strong></td><td>El "harness" de SWE-bench envuelve un <em>agente</em> para correrlo contra tareas. Un harness de agente envuelve un <em>modelo</em> para hacerlo actuar. Misma palabra, dirección de envolvimiento opuesta.</td></tr>
+    <tr><td><strong>Un orquestador</strong></td><td>Un orquestador coordina uno o más harnesses desde arriba y no implementa bucle de edición propio. Es evidencia <em>sobre</em> harnesses, no uno de ellos.</td></tr>
+    <tr><td><strong>Un scaffold</strong></td><td>Casi sinónimos. Donde la distinción sirve: <em>scaffold</em> nombra el código estructural (el bucle, los registros), <em>harness</em> nombra el artefacto runtime que lo embebe. Un scaffold puede ser 100 líneas; un harness es un producto con interfaz, sistema de permisos y ecosistema.</td></tr>
+  </table>
+
+  <div class="src"><strong>Fuente:</strong> arXiv:2609.00006v1, secciones 1, 2.1 y 2.2.</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="s2">
+  <div class="sec-num">Bloque 2</div>
+  <h2>Las dos ausencias</h2>
+  <p class="lead">El hallazgo más contraintuitivo del estudio, y el que sobrevivió a una triplicación del corpus más una re-auditoría a los tres meses.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <p>Sobre aproximadamente <strong>4 millones de líneas</strong> de Python, TypeScript y Rust, en 12 sistemas, los autores buscaron dos tecnologías que la literatura general de aplicaciones con LLM trata como centrales para cualquier producto en producción.</p>
+
+  <div class="grid2">
+    <div class="kpi">
+      <div class="big">0 / 12</div>
+      <div class="lab">sistemas usan un framework de agentes<br><em style="font-size:11.5px">LangChain, LangGraph, AutoGen, CrewAI, LlamaIndex, Pydantic AI, Genkit, Google ADK, Semantic Kernel</em></div>
+    </div>
+    <div class="kpi">
+      <div class="big">0 / 12</div>
+      <div class="lab">sistemas usan recuperación vectorial sobre código<br><em style="font-size:11.5px">Chroma, Pinecone, Weaviate, Qdrant, FAISS, LanceDB, sqlite-vec…</em></div>
+    </div>
+  </div>
+
+  <h3>Ausencia 1 — Ningún runtime importa un framework de agentes</h3>
+  <p>Se inspeccionó cada manifiesto de dependencias y se buscó en cada árbol de código los imports de los frameworks más desplegados. Cero. Dos detalles que refuerzan el resultado:</p>
+  <ul>
+    <li><strong>Gemini CLI no usa ni los frameworks de Google</strong> (Genkit, ADK), pese a ser producto de Google.</li>
+    <li>La búsqueda de contraejemplos (dependencias embebidas, imports dinámicos, builds transpilados) corrió <strong>semanas</strong> antes de que los autores aceptaran el resultado. Se repitió en la re-auditoría, sobre los 12 árboles.</li>
+  </ul>
+  <p>Todos los bucles están escritos a mano en las primitivas nativas del lenguaje anfitrión: <code>ejecución asíncrona</code>, Python síncrono bloqueante, <code>Promise</code>/async-iterator, ejecución asíncrona. Todos los registros de herramientas son construidos a medida. Todas las plantillas de prompt son Markdown, plantilla de texto o concatenación de strings.</p>
+
+  <h3>Ausencia 2 — Ningún sistema usa RAG vectorial sobre código</h3>
+  <p>Lo que usan <em>en lugar</em> de RAG:</p>
+  <table>
+    <tr><th style="width:32%">Mecanismo</th><th>Quién lo usa</th></tr>
+    <tr><td><strong>búsqueda por palabra clave</strong> y búsqueda por palabra clave</td><td>Casi todos — Claude Code, OpenHands, Gemini CLI, Mistral Vibe, Hermes, Pi, OpenCode</td></tr>
+    <tr><td><strong>análisis de la estructura del código</strong> (parseo estructural)</td><td>Mistral Vibe (validación de bash), OpenCode (permisos de comandos), Aider (extracción de símbolos para su mapa del repositorio)</td></tr>
+    <tr><td><strong>Archivos Markdown auto-descubiertos</strong></td><td>Los 11 sistemas con contexto de repositorio convergieron en este patrón</td></tr>
+    <tr><td><strong>Búsqueda léxica SQLite índice de búsqueda</strong></td><td>Hermes, para historial de sesiones a escala de 642 mil líneas, sin ninguna llamada a LLM</td></tr>
+    <tr><td><strong>mapa del repositorio con ranking</strong></td><td>Aider, el único del corpus: índice de símbolos con ordenamiento por relevancia y presupuesto de tokens adaptativo</td></tr>
+  </table>
+
+  <div class="card warn">
+    <h4>La única excepción, y su alcance</h4>
+    <p>Un sistema (OpenClaw) activa embeddings <strong>por defecto</strong>, pero para <strong>memoria de conversación</strong>, nunca para leer el árbol de código. En Hermes, los embeddings existen solo en plugins de memoria opcionales, y la búsqueda de conversaciones es deliberadamente léxica.</p>
+    <p style="margin-bottom:0"><strong>Traducción:</strong> la recuperación semántica sirve para recordar conversaciones. No para leer código.</p>
+  </div>
+
+  <h3>Por qué importa — la razón técnica, no la de moda</h3>
+  <p>El paper no lo presenta como preferencia estética. Lo explica así: las fallas de las abstracciones —corrupción silenciosa del prompt, caché opaca, esquemas de herramientas incompatibles entre versiones— se vuelven <strong>demasiado caras de ignorar</strong> cuando el agente está mutando código real. La debuggabilidad y la transparencia del prompt le ganan a la reutilización.</p>
+  <p>Sobre la segunda ausencia, la razón es estructural: el código tiene metadata determinística densa (rutas, language servers, parses de árbol, tipos) que la similitud semántica no puede replicar; cambia minuto a minuto, así que los índices nacen desactualizados; y todo entorno de código ya trae un sistema de recuperación casi óptimo — búsqueda por palabra clave, find, glob.</p>
+
+  <div class="card bad">
+    <h4>Cuidado con la lectura fácil</h4>
+    <p style="margin-bottom:0">Esto <strong>no</strong> significa "RAG es inútil". Significa: sobre <em>código</em>, con <em>estructura determinística disponible</em>, el RAG no paga su costo. Donde el documento <em>es</em> la fuente —normativa, cartas del Coordinador, procedimientos, manuales— la recuperación semántica es la herramienta correcta. La regla transferible es más general: <strong>no construyas una copia indexada cuando existe la fuente consultable</strong>.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> Observación 9, sección 13.2 y Tabla 13. Los autores reconocen que su método es estructuralmente conservador: no rastrearon forks internos, plugins cargados por import dinámico ni distribuciones transpiladas.</div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="s3">
+  <div class="sec-num">Bloque 3</div>
+  <h2>Los siete subsistemas</h2>
+  <p class="lead">La anatomía canónica. Todo sistema toma posición en los siete, incluso cuando la posición es <em>no tenerlo</em>.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <div class="svgwrap">
+    <svg viewBox="0 0 880 460" role="img" aria-label="Los siete subsistemas de un harness alrededor del bucle del agente">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#94a3b8"/>
+        </marker>
+      </defs>
+
+      <!-- centro -->
+      <circle cx="440" cy="230" r="82" fill="#2563eb"/>
+      <text x="440" y="220" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="700" font-family="IBM Plex Sans,sans-serif">BUCLE</text>
+      <text x="440" y="242" text-anchor="middle" fill="#ffffff" font-size="17" font-weight="700" font-family="IBM Plex Sans,sans-serif">DEL AGENTE</text>
+      <text x="440" y="263" text-anchor="middle" fill="#bfdbfe" font-size="11.5" font-family="IBM Plex Sans,sans-serif">D1 · el corazón</text>
+
+      <!-- cajas alrededor -->
+      <!-- arriba izquierda -->
+      <rect x="34" y="28" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="134" y="53" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D2 · Integración LLM</text>
+      <text x="134" y="72" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">proveedor, prompt, caché, costo</text>
+
+      <!-- arriba derecha -->
+      <rect x="646" y="28" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="746" y="53" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D3 · Herramientas</text>
+      <text x="746" y="72" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">qué puede hacer</text>
+
+      <!-- izquierda -->
+      <rect x="34" y="197" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="134" y="222" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D4 · Memoria</text>
+      <text x="134" y="241" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">contexto y persistencia</text>
+
+      <!-- derecha -->
+      <rect x="646" y="197" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="746" y="222" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D5 · Seguridad</text>
+      <text x="746" y="241" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">permisos y aislamiento</text>
+
+      <!-- abajo izquierda -->
+      <rect x="34" y="366" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="134" y="391" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D6 · Orquestación</text>
+      <text x="134" y="410" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">sub-agentes</text>
+
+      <!-- abajo derecha -->
+      <rect x="646" y="366" width="200" height="66" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="746" y="391" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">D7 · Extensibilidad</text>
+      <text x="746" y="410" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">skills, hooks, plugins, MCP</text>
+
+      <!-- líneas -->
+      <line x1="234" y1="61" x2="392" y2="185" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="646" y1="61" x2="488" y2="185" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="234" y1="230" x2="356" y2="230" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="646" y1="230" x2="524" y2="230" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="234" y1="399" x2="392" y2="275" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="646" y1="399" x2="488" y2="275" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
+    </svg>
+    <div class="figcap">Los siete subsistemas girando alrededor del bucle del agente. Todo harness implementa los siete con complejidad variable; en uno de los siete (orquestación) la posición de un sistema del corpus es ausencia deliberada.</div>
+  </div>
+
+  <table>
+    <tr><th style="width:15%">#</th><th style="width:26%">Rol</th><th>Forma mínima observada</th><th>Forma máxima observada</th></tr>
+    <tr>
+      <td><strong>D1</strong><br>Bucle</td>
+      <td>Alterna inferencia con ejecución; dueño de las condiciones de parada y la recuperación de fallas</td>
+      <td>Un <code>while</code> lineal sobre una sola herramienta bash</td>
+      <td>Conversación que registra cada acción como un evento sobre un log persistente, con batches de acciones en paralelo</td>
+    </tr>
+    <tr>
+      <td><strong>D2</strong><br>Integración LLM</td>
+      <td>Habla el protocolo del proveedor; arma el prompt; gestiona caché, razonamiento y ruteo</td>
+      <td>Una llamada vía capa de traducción entre proveedores, un template plantilla de texto</td>
+      <td>5 transportes propios, 29 perfiles de proveedor, metadata de 3.800+ modelos</td>
+    </tr>
+    <tr>
+      <td><strong>D3</strong><br>Herramientas</td>
+      <td>Define y ejecuta lo que el agente puede hacer —la edición de archivos por sobre todo</td>
+      <td>Solo bash</td>
+      <td>43 herramientas tipadas, con carga diferida</td>
+    </tr>
+    <tr>
+      <td><strong>D4</strong><br>Memoria</td>
+      <td>Raciona la ventana de contexto; persiste conocimiento entre turnos y sesiones</td>
+      <td>Historial lineal sin límite</td>
+      <td>Pipeline de memoria cross-sesión mantenido por un sub-agente en background</td>
+    </tr>
+    <tr>
+      <td><strong>D5</strong><br>Seguridad</td>
+      <td>Decide qué corre, qué pregunta, qué se prohíbe; aísla la ejecución</td>
+      <td>Límites de costo y de pasos</td>
+      <td>Reglas de política + revisor LLM + sandbox de sistema operativo en tres plataformas</td>
+    </tr>
+    <tr>
+      <td><strong>D6</strong><br>Orquestación</td>
+      <td>Engendra y coordina sub-agentes; se conecta con otros agentes</td>
+      <td>Ninguna, por diseño explícito (single-agent)</td>
+      <td>Composición recursiva; coordinación entre vendores distintos</td>
+    </tr>
+    <tr>
+      <td><strong>D7</strong><br>Extensibilidad</td>
+      <td>Permite que usuarios y ecosistema agreguen capacidad: config, hooks, skills, plugins, MCP</td>
+      <td>Tipado estructural (protocolos de Python, sin registro ni manifiesto)</td>
+      <td>Un runtime donde todo es extensión y el núcleo es mínimo, con un bus de eventos tipado</td>
+    </tr>
+  </table>
+
+  <div class="card accent">
+    <h4>Dos superficies transversales</h4>
+    <p><strong>La capa de interfaz</strong> —terminal, flags de línea de comandos, protocolo de IDE, servidor HTTP, SDK— por donde humanos y programas manejan el harness.</p>
+    <p style="margin-bottom:0"><strong>El sustrato de sesión</strong> —transcripts, persistencia, retomar, bifurcar— que varios subsistemas comparten.</p>
+    <p style="margin-top:12px;margin-bottom:0">La capa de interfaz es donde vive el argumento de plataforma: los sistemas más grandes del estudio cargan <strong>la mayoría de su masa ahí, no en el agente</strong>.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 2.3 y Tabla 1.</div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="s4">
+  <div class="sec-num">Bloque 4</div>
+  <h2>Cuánto hay que construir: el piso y el techo</h2>
+  <p class="lead">La pregunta práctica de todo proyecto: ¿cuánto código propio hace falta para que un agente sirva? La respuesta del estudio es incómoda y liberadora a la vez.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <h3>La pregunta, en concreto</h3>
+  <p>Estás por construir un agente. La duda razonable es: <strong>¿tengo que armar todo esto de cero, o existe una forma simple que funcione?</strong> Es la pregunta que en tu mundo se responde con la hoja de especificación: cuántos puntos de IO, cuántas señales, qué velocidad de muestreo.</p>
+  <p>Acá hay un dato que sorprende: <strong>el agente más simple del estudio tiene alrededor de 100 líneas de código.</strong> Cien líneas. Y reporta resultados en el mismo rango que sistemas <strong>mil veces más grandes</strong>.</p>
+
+  <div class="card accent">
+    <h4>Qué tiene ese agente de 100 líneas</h4>
+    <ul style="margin-bottom:0">
+      <li>Un ciclo de trabajo (el del bloque 5), y nada más alrededor de él</li>
+      <li>Una sola herramienta: ejecutar un comando</li>
+      <li>Una lista de mensajes que crece sin límite</li>
+      <li>Dos topes: máximo de pasos y máximo de costo</li>
+      <li>Cero coordinación de sub-agentes</li>
+    </ul>
+    <p style="margin-top:12px;margin-bottom:0">Eso es todo. Y funciona.</p>
+  </div>
+
+  <h3>Por qué funciona, y por qué eso cambia la estrategia</h3>
+  <p>La razón es directa: <strong>la inteligencia ya está en el modelo</strong>. El andamiaje no aporta el razonamiento; aporta las condiciones para que el razonamiento se pueda usar sin romper nada.</p>
+  <p>Es exactamente lo que pasa con un lazo de control. El algoritmo de control puede ser un PID de tres líneas o un controlador predictivo de cien páginas. Para el 80% de los lazos, el PID alcanza y sobra. La diferencia entre ambos no está en que uno "controle mejor" en el caso típico —está en <strong>qué pasa en el caso difícil</strong>.</p>
+
+  <div class="card warn">
+    <h4>La conclusión que hay que entender bien</h4>
+    <p>Complicar el agente <strong>no mejora su capacidad de resolver tareas</strong>. Eso está medido: el sistema más simple rinde igual que los más elaborados.</p>
+    <p style="margin-bottom:0">Lo que sí compra la complejidad es <strong>todo lo demás</strong>: que no rompa nada, que se recupere de sus errores, que no gaste una fortuna, que un operador pueda revisar lo que hizo, que se pueda conectar a otros sistemas. Nada de eso aparece en una prueba de laboratorio, y todo eso es lo que decide si el agente se puede desplegar.</p>
+  </div>
+
+  <h3>La curva: dónde rinde cada peso invertido</h3>
+  <p>El estudio propone una forma de verlo, y la presenta explícitamente como una <em>intuición orientadora</em>, no como un resultado demostrado. Aun así ordena bien las decisiones:</p>
+
+  <div class="svgwrap">
+    <svg viewBox="0 0 880 330" role="img" aria-label="Curva de rendimiento según complejidad del agente, con tres zonas marcadas">
+      <line x1="90" y1="265" x2="830" y2="265" stroke="#334155" stroke-width="2"/>
+      <line x1="90" y1="265" x2="90" y2="45" stroke="#334155" stroke-width="2"/>
+      <text x="460" y="305" text-anchor="middle" font-size="13" fill="#334155" font-family="IBM Plex Sans,sans-serif">Cuánto construiste →</text>
+      <text x="40" y="160" text-anchor="middle" font-size="13" fill="#334155" font-family="IBM Plex Sans,sans-serif" transform="rotate(-90 40 160)">Qué tan bien resuelve la tarea →</text>
+
+      <!-- zonas de fondo -->
+      <rect x="90" y="78" width="130" height="187" fill="#fef2f2"/>
+      <rect x="220" y="78" width="260" height="187" fill="#f0fdf4"/>
+      <rect x="480" y="78" width="350" height="187" fill="#f5f3ff"/>
+
+      <!-- banda limpia arriba, sin curva, solo para los rotulos -->
+      <line x1="90" y1="78" x2="830" y2="78" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626" font-family="IBM Plex Sans,sans-serif">ZONA 1</text>
+      <text x="350" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#16a34a" font-family="IBM Plex Sans,sans-serif">ZONA 2</text>
+      <text x="655" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#7c3aed" font-family="IBM Plex Sans,sans-serif">ZONA 3</text>
+
+      <path d="M110,258 C185,205 250,110 400,98 C545,86 690,92 820,97" fill="none" stroke="#2563eb" stroke-width="3.5"/>
+
+      <text x="155" y="200" text-anchor="middle" font-size="11.5" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">no funciona</text>
+      <text x="155" y="216" text-anchor="middle" font-size="10.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">falta lo mínimo</text>
+
+      <text x="350" y="150" text-anchor="middle" font-size="11.5" fill="#0f172a" font-family="IBM Plex Sans,sans-serif" font-weight="700">acá está el retorno</text>
+      <text x="350" y="166" text-anchor="middle" font-size="10.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">un comando + leer/escribir +</text>
+      <text x="350" y="180" text-anchor="middle" font-size="10.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">el archivo de contexto del proyecto</text>
+
+      <text x="655" y="190" text-anchor="middle" font-size="11.5" fill="#0f172a" font-family="IBM Plex Sans,sans-serif" font-weight="700">acá ya no mejora</text>
+      <text x="655" y="206" text-anchor="middle" font-size="10.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">lo que agregues va a seguridad,</text>
+      <text x="655" y="220" text-anchor="middle" font-size="10.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">interfaz y extensibilidad</text>
+
+      <circle cx="415" cy="97" r="6.5" fill="#fff" stroke="#16a34a" stroke-width="3"/>
+      <text x="415" y="242" text-anchor="middle" font-size="10.5" fill="#16a34a" font-family="IBM Plex Sans,sans-serif" font-weight="700">con esto ya llegaste</text>
+      <line x1="415" y1="108" x2="415" y2="226" stroke="#16a34a" stroke-width="1" stroke-dasharray="3,3" opacity="0.55"/>
+    </svg>
+    <div class="figcap">La curva que el estudio propone como intuición orientadora. No tiene números porque es cualitativa: ordena la decisión, no la mide.</div>
+  </div>
+
+  <table>
+    <tr><th style="width:16%">Zona</th><th style="width:34%">Qué pasa</th><th>Qué hacer</th></tr>
+    <tr>
+      <td><strong>1 · No funciona</strong></td>
+      <td>Sin un mínimo de estructura, el agente simplemente no puede operar: no tiene forma de leer nada, de actuar, de recordar lo que hizo.</td>
+      <td>Poner el mínimo: un ciclo, un comando, leer y escribir archivos, un lugar donde guardar el contexto del proyecto.</td>
+    </tr>
+    <tr>
+      <td><strong>2 · Acá está el retorno</strong></td>
+      <td>Agregar esas pocas piezas básicas produce la mejora más grande de todo el recorrido. Es la zona donde cada línea de código rinde más.</td>
+      <td>Quedarse acá hasta que una falla concreta y medida te obligue a salir.</td>
+    </tr>
+    <tr>
+      <td><strong>3 · Acá ya no mejora</strong></td>
+      <td>Más código ya no resuelve mejor las tareas. Todo lo que agregues se va a otra cosa: seguridad, que no rompa nada, que se vea bien, que se pueda extender.</td>
+      <td>Agregar en zona 3 <em>solo</em> si tienes un requisito de despliegue que lo exija — un cliente que audita, un operador que revisa, un sistema al que hay que conectarse.</td>
+    </tr>
+  </table>
+
+  <h3>El dato que confirma la forma de la curva</h3>
+  <p>El estudio cita un trabajo independiente que <strong>partió de un agente mínimo con una sola herramienta y lo fue mejorando automáticamente</strong>, midiendo qué aporta cada pieza. El resultado ordena muy bien las prioridades:</p>
+
+  <table>
+    <tr><th style="width:52%">Qué agregó</th><th>Cuánto aportó</th></tr>
+    <tr><td>Más herramientas</td><td style="color:#16a34a; font-weight:700">Mejoró</td></tr>
+    <tr><td>Piezas conectables de control del turno</td><td style="color:#16a34a; font-weight:700">Mejoró</td></tr>
+    <tr><td>Memoria de largo plazo</td><td style="color:#16a34a; font-weight:700">Mejoró — el mayor aporte de los tres</td></tr>
+    <tr><td>Mejorar las instrucciones escritas del agente</td><td style="color:#dc2626; font-weight:700">Empeoró</td></tr>
+  </table>
+
+  <div class="card bad">
+    <h4>El hallazgo contraintuitivo</h4>
+    <p style="margin-bottom:0">Escribir mejores instrucciones —el instinto natural de cualquiera que empieza— <strong>no mejora el resultado y puede empeorarlo</strong>. Lo que mejora es la estructura: capacidades, memoria, control. Dedicar días a pulir el texto de las instrucciones es tiempo mal invertido comparado con darle al agente una herramienta más o memoria que funcione.</p>
+  </div>
+
+  <h3>Dónde se va el esfuerzo en un sistema grande</h3>
+  <p>Si el 100% del código de un agente de producción no va a resolver tareas mejor, ¿a dónde va? El estudio lo mide en uno de los sistemas más grandes:</p>
+  <div class="grid2">
+    <div class="kpi">
+      <div class="big">3 de 5</div>
+      <div class="lab">líneas de código <strong>no son el agente</strong>: son sus interfaces —la pantalla, la versión web, la de escritorio, las conexiones</div>
+    </div>
+    <div class="kpi">
+      <div class="big">6 cifras</div>
+      <div class="lab">de líneas dedicadas en otro sistema a cosas como la <strong>capa de voz en tiempo real</strong>, que ninguna prueba de laboratorio va a medir jamás</div>
+    </div>
+  </div>
+  <p>Es el mismo fenómeno que ves en un proyecto de automatización: del total de horas, el lazo de control es una fracción. El resto es comunicaciones, tableros, respaldos, documentación, permisos, pruebas de aceptación. <strong>Y es exactamente eso lo que decide si el proyecto se entrega o no.</strong></p>
+
+  <h3>La recomendación, en una línea</h3>
+  <div class="card accent">
+    <p style="margin-bottom:0"><strong>Parte por el mínimo que funcione, mide qué falla, y agrega solo lo que la falla exija.</strong> No partas con la lista de deseos. Cada pieza que agregues sin una falla medida detrás es complejidad que vas a mantener el resto del proyecto, y que no te va a hacer resolver mejor la tarea.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> arXiv:2609.00006v1, secciones 2.4, 5, 15.2 y 15.5, Observación 1 y Observación 13. La curva se presenta en el estudio como intuición orientadora; los aportes por componente provienen de un trabajo independiente que el estudio cita, partiendo de un agente mínimo y evolucionándolo automáticamente.</div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="s5">
+  <div class="sec-num">Bloque 5</div>
+  <h2>El bucle: el motor del agente</h2>
+  <p class="lead">Todos los agentes tienen el mismo motor. Lo que cambia es qué tan complicado lo construyeron — y ese cambio casi no afecta el resultado.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <h3>Primero: qué es un bucle, sin metáforas</h3>
+  <p>Un agente no "piensa y responde". <strong>Repite un ciclo hasta terminar el trabajo.</strong> Cada vuelta del ciclo tiene cuatro pasos, siempre los mismos:</p>
+
+  <div class="svgwrap">
+    <svg viewBox="0 0 820 260" role="img" aria-label="El ciclo de cuatro pasos del agente">
+      <defs>
+        <marker id="arc" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+          <path d="M0,0 L9,4.5 L0,9 z" fill="#2563eb"/>
+        </marker>
+      </defs>
+      <rect x="40" y="60" width="150" height="60" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+      <text x="115" y="86" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">1 · Armar</text>
+      <text x="115" y="104" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">qué le muestro al modelo</text>
+
+      <line x1="192" y1="90" x2="228" y2="90" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arc)"/>
+
+      <rect x="232" y="60" width="150" height="60" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="307" y="86" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">2 · Pensar</text>
+      <text x="307" y="104" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">el modelo decide</text>
+
+      <line x1="384" y1="90" x2="420" y2="90" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arc)"/>
+
+      <rect x="424" y="60" width="150" height="60" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="499" y="86" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">3 · Actuar</text>
+      <text x="499" y="104" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">el sistema ejecuta</text>
+
+      <line x1="576" y1="90" x2="612" y2="90" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arc)"/>
+
+      <rect x="616" y="60" width="150" height="60" rx="8" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+      <text x="691" y="86" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a" font-family="IBM Plex Sans,sans-serif">4 · Observar</text>
+      <text x="691" y="104" text-anchor="middle" font-size="11" fill="#64748b" font-family="IBM Plex Sans,sans-serif">qué resultó</text>
+
+      <!-- retorno -->
+      <path d="M691,124 L691,168 L115,168 L115,124" fill="none" stroke="#2563eb" stroke-width="2.5" marker-end="url(#arc)"/>
+      <text x="403" y="190" text-anchor="middle" font-size="12" fill="#2563eb" font-family="IBM Plex Sans,sans-serif" font-weight="600">¿Ya está? No → vuelve a empezar</text>
+      <text x="403" y="212" text-anchor="middle" font-size="11.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">Sí → termina y entrega</text>
+
+      <text x="403" y="36" text-anchor="middle" font-size="11.5" fill="#94a3b8" font-family="IBM Plex Sans,sans-serif">cada vuelta del ciclo = una llamada al modelo (y una llamada se cobra)</text>
+    </svg>
+    <div class="figcap">El ciclo que todo agente repite. Los cuatro pasos son siempre los mismos; lo que cambia entre sistemas es cómo manejan las complicaciones de cada uno.</div>
+  </div>
+
+  <div class="card accent">
+    <h4>La traducción a tu mundo</h4>
+    <p style="margin-bottom:0">Es un <strong>lazo de control</strong>. Paso 1 es el setpoint y la lectura actual; paso 2 es el controlador decidiendo; paso 3 es la acción sobre el proceso; paso 4 es la retroalimentación. La diferencia es que acá el controlador no es un algoritmo fijo: es un modelo de lenguaje, y por eso puede reaccionar a situaciones que nadie programó —y también equivocarse de formas que un controlador clásico nunca haría.</p>
+  </div>
+
+  <p>Los tres pasos que generan todo el trabajo de ingeniería son el 1, el 3 y la condición de salida. <strong>Pensar es lo fácil.</strong> Armarlo bien, ejecutar sin romper nada y saber cuándo parar: ahí se va el esfuerzo.</p>
+
+  <h3>Cuatro problemas, y cómo los resuelve cada sistema</h3>
+  <p>Todo agente tiene que resolver los mismos cuatro problemas. Lo que cambia es la respuesta.</p>
+
+  <table>
+    <tr><th style="width:22%">El problema</th><th style="width:39%">Pregunta concreta</th><th>Ejemplos de respuesta observados</th></tr>
+    <tr>
+      <td><strong>¿Cuándo termina?</strong><br><em>condición de salida</em></td>
+      <td>El modelo declara que terminó. ¿Y si se equivoca, o si nunca termina?</td>
+      <td>El más simple confía en que el modelo declare fin. Otros ponen un tope duro de iteraciones (uno corta a las 90 vueltas). Uno enumera once formas distintas en que un turno puede terminar, para poder distinguir "terminó bien" de "se rindió" o "agotó presupuesto".</td>
+    </tr>
+    <tr>
+      <td><strong>¿Puede hacer varias cosas a la vez?</strong><br><em>concurrencia</em></td>
+      <td>Si el agente necesita leer tres archivos, ¿espera uno por uno o los pide simultáneos? Y si intenta escribir dos veces el mismo archivo a la vez, ¿qué pasa?</td>
+      <td>Del más simple (todo secuencial, no hay riesgo) al más elaborado: solo se ejecutan en paralelo las acciones marcadas como seguras (leer nunca rompe nada, escribir sí); y cuando sí se serializan, se hace <strong>por recurso</strong> — dos lecturas distintas corren juntas, pero dos escrituras al mismo archivo esperan turno.</td>
+    </tr>
+    <tr>
+      <td><strong>¿Y si se queda pegado?</strong><br><em>detección de bucles</em></td>
+      <td>El agente repite la misma acción una y otra vez sin avanzar. ¿Cómo lo detecta el sistema?</td>
+      <td>Desde ninguna detección (dos de los sistemas comerciales más grandes no la tienen y funcionan bien) hasta técnicas sofisticadas: contar acciones idénticas por su firma numérica —dos avisos y a los ocho se detiene—, o analizar la salida completa con un modelo después de treinta vueltas para decidir si el agente está dando vueltas en redondo.</td>
+    </tr>
+    <tr>
+      <td><strong>¿Cuánto cuesta correrlo?</strong><br><em>control de gasto</em></td>
+      <td>Cada vuelta del ciclo se cobra. Un agente que se queda dando vueltas cuesta dinero real.</td>
+      <td>Un sistema factoriza el control de gasto como pieza aparte: tope de vueltas, tope de dinero, tope de tokens, aviso cuando el contexto se acerca al límite, y modo solo-lectura —cada uno es un componente independiente que se conecta o desconecta, sin tocar el motor.</td>
+    </tr>
+  </table>
+
+  <h3>Y acá está la sorpresa</h3>
+  <p>Podrías esperar que el sistema con el motor más elaborado rinda mejor. <strong>No ocurre.</strong> El sistema con el motor más simple del estudio —un ciclo lineal escrito en unas 50 líneas, sin estado, sin concurrencia, sin detección de bucles— reporta resultados en el <em>mismo rango</em> que uno con un motor que registra cada acción como un evento que dedica mucho más código solo a manejar el ciclo.</p>
+
+  <div class="card warn">
+    <h4>Qué significa esto, con cuidado</h4>
+    <p>No significa que dé lo mismo. Significa que <strong>la complicación del motor no es lo que hace la diferencia en el resultado</strong>. Las diferencias reales aparecen en cosas que no se miden en una prueba de laboratorio: qué pasa cuando el agente se equivoca, cuánto cuesta una sesión larga, si un operador puede ver lo que hizo, si el sistema puede detenerse.</p>
+    <p style="margin-bottom:0">Para tu terreno esto es directamente aplicable: <strong>no necesitas el motor más sofisticado del mercado. Necesitas el que no falle cuando no debe fallar.</strong></p>
+  </div>
+
+  <h3>Las tres formas de bucle que existen</h3>
+  <p>Con el motor ya entendido, las variantes son solo variantes. Las tres que aparecen en el corpus:</p>
+
+  <table>
+    <tr><th style="width:20%">Forma</th><th style="width:38%">En qué consiste</th><th>Quiénes, y para qué les sirve</th></tr>
+    <tr>
+      <td><strong>Simple</strong></td>
+      <td>El ciclo de cuatro pasos, sin nada más alrededor. Repite hasta que el modelo declare fin.</td>
+      <td>Nueve de los doce sistemas. Es el estándar de la industria, no la versión pobre.</td>
+    </tr>
+    <tr>
+      <td><strong>Con verificación</strong></td>
+      <td>Igual que el simple, pero después de cada acción se revisa si quedó bien: si hay errores de sintaxis, si fallan las pruebas, si quedaron referencias rotas. Si algo falla, el sistema le devuelve el problema al modelo para que lo corrija.</td>
+      <td>Un solo sistema lo tiene como forma principal. Los demás lo agregaron <em>a la salida</em>: revisan una vez al final del turno, y si no hay evidencia de verificación, no lo dejan cerrar. Mucho más barato que revisar en cada vuelta.</td>
+    </tr>
+    <tr>
+      <td><strong>Con coordinación</strong></td>
+      <td>Encima del ciclo simple se agrega un jefe: un agente que reparte el trabajo entre varios y después junta los resultados.</td>
+      <td>Todos los sistemas comerciales, más cuatro de código abierto. Es una <em>capa que se agrega</em>, no un motor distinto — y tiene su propio bloque (el 8).</td>
+    </tr>
+  </table>
+
+  <h3>La recomendación, en una línea</h3>
+  <div class="card accent">
+    <p><strong>Empieza con la forma simple.</strong> El ciclo de cuatro pasos, sin nada más.</p>
+    <p style="margin-bottom:0">Cuando aparezcan <em>tres o más</em> necesidades de control del turno (tope de vueltas, tope de dinero, resumen automático, aviso de contexto, modo solo-lectura), entonces sí conviene reorganizarlo como piezas que se conectan y desconectan —el patrón de un sistema del corpus: cada política es un componente independiente, no una condición más dentro del motor. Antes de eso, la pieza extra es complejidad que no se paga.</p>
+  </div>
+
+  <div class="card ok">
+    <h4>Sobre la detección de bucles, específicamente</h4>
+    <p style="margin-bottom:0">Los dos sistemas comerciales más grandes del estudio <strong>no la tienen</strong> y entregan agentes de calidad producción. Pero el piso se movió: hasta el sistema más minimalista ahora pone un tope de tiempo y un límite de respuestas malformadas seguidas. <strong>La recomendación es publicar los topes baratos —cuestan unas doce líneas— y no invertir en detección sofisticada.</strong> Si el agente se queda pegado, un tope de vueltas lo detiene igual, y cuesta muchísimo menos.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> arXiv:2609.00006v1, sección 6, Tabla 5, Observación 1 y Recomendaciones 1 y 18.</div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="s6">
+  <div class="sec-num">Bloque 6</div>
+  <h2>Memoria y contexto</h2>
+  <p class="lead">Todo agente llega al mismo problema: la conversación crece más que la ventana de contexto. Aquí está la frontera real del campo.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <h3>Las cuatro estrategias de compactación</h3>
+  <table>
+    <tr><th style="width:20%">Estrategia</th><th style="width:32%">Cómo funciona</th><th>Quiénes</th></tr>
+    <tr><td><strong>Historial lineal</strong></td><td>Sin poda. La lista crece sin límite, confiando en la ventana nativa del modelo</td><td>El sistema de investigación minimalista</td></tr>
+    <tr><td><strong>Resumen recursivo</strong></td><td>Parte el historial en dos por conteo de tokens, mantiene la cola intacta y resume la cabeza; si aún no cabe, recursa</td><td>Un sistema, con posibilidad de usar un modelo "débil" más barato para resumir</td></tr>
+    <tr><td><strong>Condensación enchufable</strong></td><td>Clase base abstracta con implementaciones intercambiables; la condensación es ella misma que registra cada acción como un evento, así que la historia de compresiones es reproducible</td><td>Un sistema —y el condensador dobla como recuperación de errores: un desborde de contexto dispara una condensación en vez de un crash</td></tr>
+    <tr><td><strong>Compactación por umbral</strong></td><td>Se dispara al cruzar un umbral de tokens; preserva una cola reciente verbatim y resume el resto</td><td><strong>7 de 12 sistemas</strong> — las cuatro nativas de proveedor y los tres más nuevos: es el estándar de facto</td></tr>
+  </table>
+
+  <p>Los detalles que separan una compactación buena de una que pierde el trabajo hecho:</p>
+  <ul>
+    <li><strong>Fusión incremental.</strong> Dos sistemas pasan el <em>resumen anterior</em> de vuelta al modelo para que lo fusione ("conserva lo que sigue siendo cierto, elimina lo obsoleto") en vez de re-resumir desde cero. Eso preserva las decisiones tomadas al principio.</li>
+    <li><strong>Preservación de la cola verbatim.</strong> Un sistema compacta al 50% del límite pero mantiene el último 30% del historial intacto.</li>
+    <li><strong>Reinyección de los mensajes del usuario.</strong> Otro reinyecta los mensajes previos del usuario junto al resumen, para que el objetivo original de la tarea sobreviva al reseteo.</li>
+    <li><strong>Disparo reactivo.</strong> La misma rutina que se dispara por umbral se dispara también cuando un turno revienta la ventana a mitad de vuelo.</li>
+  </ul>
+
+  <h3>Memoria persistente: la frontera nueva</h3>
+  <p>La compactación ya convergió. Lo que ahora diferencia a los sistemas es <strong>quién escribe la memoria</strong>, y hay cuatro modelos de gobernanza en el corpus.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Mantenida por el agente</h4>
+      <p style="margin-bottom:0">Un pipeline en background extrae memorias estructuradas de las sesiones recientes y las consolida en archivos bajo un repositorio con base git. La consolidación la hace un sub-agente sandboxeado, sin aprobaciones, sin red, solo escritura local, revisando un diff. Las memorias se inyectan en sesiones nuevas con trazabilidad de citas y ranking por uso. <strong>Es el primer sistema cuya memoria de largo plazo la mantiene un agente, no código.</strong></p>
+    </div>
+    <div class="card">
+      <h4>Con revisión humana</h4>
+      <p style="margin-bottom:0">Un sub-agente asíncrono mina transcripts de sesiones completadas y emite parches canónicos a una bandeja de entrada por proyecto, que <strong>el usuario revisa y aplica</strong>. Es el único diseño del corpus que inserta una revisión humana entre la extracción y la persistencia. El sistema eliminó su herramienta de guardado directo: ahora el prompt declara explícitamente que esa herramienta no existe.</p>
+    </div>
+    <div class="card">
+      <h4>Directa pero acotada</h4>
+      <p style="margin-bottom:0">Dos archivos Markdown con tope de caracteres, inyectados como <strong>snapshot congelado</strong>: las escrituras a mitad de sesión van a disco sin invalidar la caché del prompt. La búsqueda de conversaciones es determinística —índice léxico SQLite, sin una sola llamada a LLM— y los embeddings existen solo en plugins opcionales.</p>
+    </div>
+    <div class="card">
+      <h4>Nada persistente</h4>
+      <p style="margin-bottom:0">Dos sistemas <strong>no persisten nada</strong> más allá del sustrato de sesión. Es una postura documentada, no un olvido.</p>
+    </div>
+  </div>
+
+  <h3>Contexto de repositorio: un patrón, tres convenciones</h3>
+  <p>Los once sistemas que manejan contexto de proyecto convergieron en lo mismo: <strong>auto-descubrir archivos Markdown jerárquicos</strong> y inyectarlos. Pero las reglas de precedencia difieren, y la diferencia tiene consecuencias.</p>
+
+  <table>
+    <tr><th style="width:28%">Regla</th><th>Cómo se comporta</th></tr>
+    <tr><td><strong>Concatenación de raíz a directorio</strong></td><td>El contenido anidado se anexa al final. La "precedencia" existe solo por posición — el último gana por estar más abajo, no por una regla explícita.</td></tr>
+    <tr><td><strong>Primero encontrado gana</strong></td><td>Se recorre hacia arriba buscando una lista de nombres; <strong>el primero que aparece desactiva los siguientes</strong>. Consecuencia práctica: crear un archivo de nombre nuevo desactiva en silencio el anterior.</td></tr>
+    <tr><td><strong>Fusión de tres alcances</strong></td><td>Global, provisto por extensión, y local al proyecto, con gate por confianza de la carpeta.</td></tr>
+  </table>
+
+  <div class="card warn">
+    <h4>Y una defensa que solo un sistema implementa</h4>
+    <p style="margin-bottom:0">Todos los archivos de contexto son escaneados buscando patrones de inyección de prompt y <strong>bloqueados por completo</strong> si hay coincidencia. Otro sistema documenta explícitamente que acepta el riesgo: los archivos de contexto cargan sin gate de confianza. <strong>El archivo de contexto es una superficie de inyección real, no teórica.</strong></p>
+  </div>
+
+  <div class="card accent">
+    <h4>La recomendación</h4>
+    <p style="margin-bottom:0">Compactación por umbral con buffer fijo bajo la ventana, cola reciente verbatim, fusión incremental de resúmenes, y disparo reactivo ante desborde. Auto-descubrimiento jerárquico de contexto, con los anidados surfaceados justo a tiempo —y lee también los nombres de archivo de los vecinos, porque la interoperabilidad entre herramientas ya es un hecho.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 9 completa, Observación 5, Tabla 12.</div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="s7">
+  <div class="sec-num">Bloque 7</div>
+  <h2>Seguridad y permisos</h2>
+  <p class="lead">La dimensión donde el corpus está más disperso, y donde el paper desarma una intuición equivocada.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <h3>Dos pilas completas, para comparar</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4>Tres capas: la pila "elegante"</h4>
+      <ol style="margin-bottom:0">
+        <li><strong>Reglas estáticas</strong> por coincidencia de patrón, en hooks previos a la herramienta. Las más rápidas, las de menor contexto.</li>
+        <li><strong>Clasificador LLM</strong> de permisos: permite, pregunta o niega.</li>
+        <li><strong>Diálogo interactivo</strong> con el usuario: aprobar, rechazar o editar. La más lenta y la más confiable.</li>
+      </ol>
+      <p style="margin-top:12px;margin-bottom:0">Los sub-agentes en background solo tienen acceso a las capas 1–2: sus diálogos se resuelven como negaciones. Hay conteo de negaciones por sesión, y cada agente mantiene estado local para que los rechazos no se acumulen globalmente.</p>
+    </div>
+    <div class="card">
+      <h4>Cuatro capas: la pila "de ingeniería"</h4>
+      <ol style="margin-bottom:0">
+        <li><strong>Política de ejecución ejecutable</strong>, escrita como código (no como configuración pasiva), con <em>ejemplos de prueba validados al parsear el archivo</em>. El lenguaje de política resultó ser distinto del que la edición anterior del paper reportaba: la re-auditoría encontró un error propio y lo corrigió.</li>
+        <li><strong>Hooks de ciclo de vida</strong> — y su vocabulario de eventos es casi idéntico al de la pila de tres capas. Un proveedor adoptó la interfaz de extensión del otro como estándar de facto.</li>
+        <li><strong>Revisor LLM</strong> de aprobación: reevalúa la acción exacta contra un prompt de política, con veredicto JSON estricto, y <strong>falla cerrado</strong> ante timeout o salida malformada. Circuit breaker por turno.</li>
+        <li><strong>Sandbox nativo del sistema operativo</strong> en tres plataformas.</li>
+      </ol>
+    </div>
+  </div>
+
+  <h3>El hallazgo que rompe la intuición: el sandbox es una decisión, no una consecuencia del tamaño</h3>
+
+  <p>La edición de abril del estudio observaba que sus dos sistemas más grandes eran también los dos únicos con sandbox multiplataforma, y leía esa correlación como estructural. <strong>El corpus ampliado la falsifica.</strong></p>
+
+  <div class="svgwrap">
+    <svg viewBox="0 0 860 250" role="img" aria-label="Comparación de tamaño de código versus inversión en aislamiento de sistema operativo">
+      <text x="430" y="20" text-anchor="middle" font-size="12.5" fill="#334155" font-family="IBM Plex Sans,sans-serif">Tamaño del código (miles de líneas) y dónde se gasta el presupuesto de seguridad</text>
+
+      <!-- barras -->
+      <g font-family="IBM Plex Sans,sans-serif" font-size="11.5">
+        <text x="120" y="60" text-anchor="end" fill="#0f172a">1.120</text>
+        <rect x="126" y="48" width="520" height="17" rx="3" fill="#2563eb"/>
+        <text x="656" y="60" fill="#16a34a" font-weight="700">sandbox nativo ×3 SO</text>
+
+        <text x="120" y="90" text-anchor="end" fill="#0f172a">~642</text>
+        <rect x="126" y="78" width="298" height="17" rx="3" fill="#7c3aed"/>
+        <text x="434" y="90" fill="#7c3aed" font-weight="700">cero aislación SO · amenazas de contenido</text>
+
+        <text x="120" y="120" text-anchor="end" fill="#0f172a">~578</text>
+        <rect x="126" y="108" width="268" height="17" rx="3" fill="#d97706"/>
+        <text x="404" y="120" fill="#d97706" font-weight="700">cero aislación SO · solo permisos</text>
+
+        <text x="120" y="150" text-anchor="end" fill="#0f172a">~568</text>
+        <rect x="126" y="138" width="264" height="17" rx="3" fill="#16a34a"/>
+        <text x="400" y="150" fill="#16a34a" font-weight="700">sandbox nativo ×3 SO</text>
+      </g>
+
+      <line x1="126" y1="176" x2="820" y2="176" stroke="#cbd5e1" stroke-width="1"/>
+      <text x="126" y="198" font-size="11.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">Los tres sistemas más grandes del corpus: uno tiene sandbox, dos no. El tamaño predice <tspan font-weight="700">alguna</tspan> inversión grande en seguridad,</text>
+      <text x="126" y="216" font-size="11.5" fill="#64748b" font-family="IBM Plex Sans,sans-serif">no específicamente un sandbox. Los dos sin sandbox gastan en <tspan font-weight="700">defensa contra amenazas de contenido</tspan> y <tspan font-weight="700">granularidad de permisos</tspan>.</text>
+    </svg>
+    <div class="figcap">La correlación de abril entre tamaño y sandbox no sobrevivió al corpus ampliado. Los conteos son aproximados y no comparables entre lenguajes.</div>
+  </div>
+
+  <h3>Otras estrategias que vale conocer</h3>
+  <table>
+    <tr><th style="width:26%">Estrategia</th><th>En qué consiste</th></tr>
+    <tr><td><strong>Ensemble de analizadores</strong></td><td>Un framework enchufable que combina analizadores determinísticos (patrones, y "rieles de política" con nombres como <em>fetch-to-exec</em>, <em>raw-disk-op</em>, <em>catastrophic-delete</em> sobre parseo de AST de shell) con un analizador LLM donde el propio agente se autoevalúa el riesgo de cada acción. Se fusionan con criterio de peor-caso-gana, y un analizador roto falla cerrado a riesgo alto.</td></tr>
+    <tr><td><strong>Permisos derivados por sintaxis</strong></td><td>Cada comando se parsea antes de autorizarse. El texto exacto del comando se vuelve el patrón de la pregunta, y los permisos "siempre permitir" se acotan por <strong>aridad de argumentos</strong> (por ejemplo, autorizar <code>git commit</code> sin autorizar todo <code>git</code>). Negar un comodín para una herramienta la saca del prompt: <strong>la disponibilidad de la herramienta se deriva del permiso</strong>.</td></tr>
+    <tr><td><strong>Authorización por alcance</strong></td><td>Roles y alcances con espacio de nombres, rate limiting, política anti-SSRF, lista blanca de mensajes directos con flujo de aprobación de emparejamiento, y límite de tamaño de prompt como protección anti-DoS.</td></tr>
+    <tr><td><strong>Cuatro modos de aprobación</strong></td><td>Solo-lectura · interactivo por llamada · auto-aprobar ediciones pero preguntar por shell · auto-aprobar todo. Y por encima, una política de sandbox por modo en archivo de configuración.</td></tr>
+    <tr><td><strong>Piso que sobrevive al modo libre</strong></td><td>Doce patrones de comando que <strong>nunca</strong> se ejecutan, con la variable de entorno del modo libre <strong>congelada al importar el módulo</strong> precisamente para que una skill con prompt inyectado no pueda activarla en runtime. Cuarenta y siete patrones más, evaluados sobre <em>variantes desofuscadas</em> (eliminación de comillas partidas, plegado de sustitución de comandos, anclaje a posición de comando).</td></tr>
+  </table>
+
+  <div class="card bad">
+    <h4>El dato más incómodo del bloque</h4>
+    <p style="margin-bottom:0">Ninguno de los once prompts del corpus contiene <strong>lenguaje de rechazo a peticiones dañinas</strong>. No hay instrucciones del tipo "si el usuario pide X, rechaza y explica por qué". Lo único con forma de rechazo concierne riesgos operativos (operaciones destructivas de git, higiene de secretos), no daños de política. <em>La seguridad contra el mal uso está enteramente delegada al entrenamiento del modelo y a la capa de política del proveedor.</em> Es una decisión de diseño, y los autores la reportan como hallazgo, no como recomendación.</p>
+  </div>
+
+  <div class="card accent">
+    <h4>La recomendación</h4>
+    <p><strong>Herramienta con usuario de confianza:</strong> tres modos de aprobación (solo-lectura / interactivo / sin restricciones) con patrones de permiso por alcance.</p>
+    <p style="margin-bottom:0"><strong>Entorno empresarial, compartido o automatizado:</strong> sandbox a nivel de sistema operativo + política como código + trazas de auditoría por agente. Y en cualquier caso: <strong>codifica las reglas como datos o archivos de política, nunca como código imperativo, y si soportas un modo sin restricciones, déjale un piso debajo.</strong></p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 10 completa, Tabla 8, Observación 6 y Recomendaciones 9–11. El paper reporta y luego corrige un error propio de su edición anterior sobre la frecuencia de uso del sandbox en uno de los sistemas.</div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="s8">
+  <div class="sec-num">Bloque 8</div>
+  <h2>Orquestación: seis patrones</h2>
+  <p class="lead">Nueve de los once sistemas soportan multi-agente. Es la dimensión más dispersa del corpus, y la convergencia es notable.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <div class="svgwrap">
+    <svg viewBox="0 0 880 300" role="img" aria-label="Seis patrones de orquestación multi-agente">
+      <defs>
+        <marker id="ar2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#64748b"/>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans,sans-serif" font-size="11.5">
+        <!-- 1 -->
+        <text x="140" y="20" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">1 · Single-agent</text>
+        <rect x="70" y="34" width="140" height="40" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="140" y="59" text-anchor="middle" fill="#0f172a">agente</text>
+        <text x="140" y="94" text-anchor="middle" fill="#64748b" font-size="10.5">sin herramienta de spawn</text>
+
+        <!-- 2 -->
+        <text x="400" y="20" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">2 · Delegación secuencial</text>
+        <rect x="330" y="34" width="140" height="36" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="400" y="57" text-anchor="middle" fill="#0f172a">padre</text>
+        <line x1="400" y1="70" x2="400" y2="96" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="330" y="100" width="140" height="36" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="400" y="123" text-anchor="middle" fill="#0f172a">sub-agente</text>
+        <text x="400" y="154" text-anchor="middle" fill="#64748b" font-size="10.5">el padre bloquea; uno a la vez</text>
+
+        <!-- 3 -->
+        <text x="700" y="20" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">3 · Sesiones hijas paralelas</text>
+        <rect x="660" y="34" width="120" height="36" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="720" y="57" text-anchor="middle" fill="#0f172a">padre</text>
+        <line x1="690" y1="70" x2="665" y2="96" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <line x1="750" y1="70" x2="775" y2="96" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="620" y="100" width="90" height="36" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="665" y="123" text-anchor="middle" font-size="10.5" fill="#0f172a">sesión A</text>
+        <rect x="730" y="100" width="90" height="36" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="775" y="123" text-anchor="middle" font-size="10.5" fill="#0f172a">sesión B</text>
+        <text x="720" y="154" text-anchor="middle" fill="#64748b" font-size="10.5">concurrentes; historias separadas</text>
+
+        <!-- 4 -->
+        <text x="140" y="196" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">4 · Árbol de hilos con fan-out</text>
+        <rect x="70" y="210" width="140" height="32" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="140" y="231" text-anchor="middle" fill="#0f172a">hilo raíz</text>
+        <line x1="110" y1="242" x2="90" y2="262" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <line x1="170" y1="242" x2="190" y2="262" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="52" y="266" width="76" height="28" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <rect x="152" y="266" width="76" height="28" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="140" y="180" text-anchor="middle" fill="#64748b" font-size="10.5">con seguimiento de profundidad</text>
+
+        <!-- 5 -->
+        <text x="400" y="196" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">5 · Composición recursiva</text>
+        <rect x="330" y="210" width="140" height="32" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="400" y="231" text-anchor="middle" fill="#0f172a">agente</text>
+        <line x1="400" y1="242" x2="400" y2="262" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="330" y="266" width="140" height="28" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="400" y="285" text-anchor="middle" font-size="10.5" fill="#0f172a">sub-agente (y así…)</text>
+        <text x="400" y="180" text-anchor="middle" fill="#64748b" font-size="10.5">caché de prompt compartida</text>
+
+        <!-- 6 -->
+        <text x="700" y="196" text-anchor="middle" font-weight="700" font-size="12" fill="#0f172a">6 · Registro + protocolo</text>
+        <rect x="640" y="210" width="76" height="32" rx="6" fill="#ffffff" stroke="#334155" stroke-width="1.5"/>
+        <text x="678" y="231" text-anchor="middle" font-size="10.5" fill="#0f172a">padre</text>
+        <line x1="716" y1="226" x2="742" y2="226" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="746" y="210" width="120" height="32" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+        <text x="806" y="231" text-anchor="middle" font-size="10.5" fill="#0f172a">registro de agentes</text>
+        <line x1="806" y1="242" x2="806" y2="262" stroke="#64748b" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <rect x="746" y="266" width="120" height="28" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="806" y="285" text-anchor="middle" font-size="10.5" fill="#0f172a">agente remoto</text>
+      </g>
+    </svg>
+    <div class="figcap">Los seis patrones de orquestación. Los nodos con borde violeta son los engendrados; el verde es el registro de definiciones.</div>
+  </div>
+
+  <table>
+    <tr><th style="width:24%">Patrón</th><th>Quiénes, y qué optimizan</th></tr>
+    <tr><td><strong>1 · Single-agent</strong></td><td>Tres sistemas, dos por diseño explícito. Uno es un harness de producción completo que <strong>deliberadamente</strong> no trae herramienta de spawn: los sub-agentes viven en el espacio de extensiones.</td></tr>
+    <tr><td><strong>2 · Delegación secuencial</strong></td><td>Un sistema: el padre invoca una herramienta, se construye un bucle nuevo en proceso, corre hasta terminar y devuelve el resumen. El padre <em>bloquea</em>. Un guard impide que se delegue a perfiles con capacidad de escritura, para evitar escalada recursiva accidental.</td></tr>
+    <tr><td><strong>3 · Sesiones hijas paralelas</strong></td><td>Dos sistemas. Cada hija es una conversación <em>separada</em> con su propio log, corriendo concurrentemente en hilos. Detalle elegante: la contención es asimétrica — las hijas heredan solo las <em>reglas de denegación</em> del padre, no las de permiso.</td></tr>
+    <tr><td><strong>4 · Árbol de hilos con fan-out</strong></td><td>Un sistema. Hilos dedicados con modo de bifurcación que controla cuánta historia se hereda (historia completa, o solo los últimos N turnos, filtrando llamadas intermedias y razonamiento para no inflar el contexto). Incluye fan-out tipo map-reduce: un sub-agente por fila de un CSV bajo un contrato de resultado compartido. Y dos generaciones de herramientas coexisten, seleccionadas <em>por modelo</em>.</td></tr>
+    <tr><td><strong>5 · Composición recursiva</strong></td><td>Un sistema. Los agentes engendran sub-agentes de forma componible, con el contexto del padre bifurcado en seis dimensiones (controlador de aborto enlazado, caché de estado de archivos clonada, prompts de permiso suprimidos, estado local de negaciones fresco). Optimización clave: <strong>el prompt renderizado del padre se congela al bifurcar y se pasa verbatim al hijo</strong>, para que los aciertos de caché se mantengan a través de la bifurcación.</td></tr>
+    <tr><td><strong>6 · Registro + protocolo</strong></td><td>Tres sistemas. Definiciones de agente con nombre en un registro; la invocación se abstrae detrás de un protocolo de sesión con implementaciones local y remota simétricas. Uno implementa un servidor del protocolo agente-a-agente.</td></tr>
+  </table>
+
+  <div class="card ok">
+    <h4>La convergencia</h4>
+    <p style="margin-bottom:0">El patrón coordinador-trabajador <strong>emerge independientemente</strong> en todos los sistemas nativos de proveedor, más tres de código abierto, más uno en la capa de protocolo. Que tantos códigos desarrollados por separado converjan en la misma forma jerárquica es evidencia fuerte de evolución convergente.</p>
+  </div>
+
+  <div class="card warn">
+    <h4>Pero ojo con el costo</h4>
+    <p style="margin-bottom:0">Los sistemas multi-agente consumen aproximadamente <strong>15 veces más tokens</strong> que un chat base (comparado contra un chat simple, no contra un pipeline de un solo agente optimizado). Y la observación clave del corpus: los patrones multi-agente se usan mayoritariamente en <strong>fases de exploración en anchura</strong> —investigación paralela de un código o de un corpus—, no en implementación paralela.</p>
+  </div>
+
+  <div class="card accent">
+    <h4>Las dos recomendaciones</h4>
+    <p><strong>Quédate single-agent</strong> hasta que puedas señalar una fase concreta de exploración en anchura donde el aislamiento paralelo de contexto le gane claramente a la búsqueda serial.</p>
+    <p style="margin-bottom:0"><strong>Publica un servidor del protocolo ACP</strong> —eso compra tres audiencias: editores, harnesses anfitriones y meta-orquestadores— pero <strong>mantén tus propios sub-agentes dentro del mismo proceso</strong>. Para main↔sub-agente, no adoptes protocolo estándar: 8 de los 9 sistemas multi-agente usan primitivas en proceso, y hasta las excepciones entre procesos evitan los protocolos estándar para ese rol.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 11 completa, Tablas 9 y 14, Figuras 6 y 7, Observación 7 y Observación 11. El detalle de ACP está desarrollado en el archivo <code>acp-analisis.md</code> de esta misma carpeta.</div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="s9">
+  <div class="sec-num">Bloque 9</div>
+  <h2>Extensibilidad: ganó skills</h2>
+  <p class="lead">Dos estándares compitieron por el mismo puesto. La competencia se resolvió, y el resultado tiene consecuencias.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <div class="grid2">
+    <div class="kpi">
+      <div class="big">9 / 12</div>
+      <div class="lab"><strong>Skills</strong><br>directorios con un archivo SKILL.md y frontmatter YAML</div>
+    </div>
+    <div class="kpi">
+      <div class="big">8 / 12</div>
+      <div class="lab"><strong>MCP</strong><br>protocolo de cable JSON-RPC para procesos externos</div>
+    </div>
+  </div>
+
+  <p>En abril estaban empatados. El corpus ampliado rompió el empate <strong>a favor de skills</strong>, y el motivo es instructivo: un sistema implementa el estándar de skills <em>rechazando MCP explícitamente</em>. Su documentación propone "construye herramientas de línea de comandos con README" como alternativa articulada a un protocolo de cable. <strong>Skills-como-reemplazo-de-MCP ya es una postura, no una convivencia.</strong></p>
+
+  <div class="card accent">
+    <h4>No son la misma cosa — por eso se componen</h4>
+    <p><strong>MCP</strong> es un <em>protocolo de cable</em>: cómo un agente habla con un proceso separado que expone herramientas.</p>
+    <p style="margin-bottom:0"><strong>Skills</strong> son una <em>convención de sistema de archivos</em>: cómo se empaqueta una unidad de conocimiento (instrucciones, scripts opcionales, metadata) en un directorio que el agente descubre y lee directo.</p>
+  </div>
+
+  <h3>Cuatro desarrollos de segundo orden</h3>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>1 · Carga diferida: casi universal</h4>
+      <p style="margin-bottom:0">Ocho de los nueve adoptantes cargan solo la <em>metadata</em> de la skill al inicio y traen el cuerpo bajo demanda. El noveno es el único cargador ansioso del corpus, y lo compensa con gate de elegibilidad: una skill que no aplica nunca llega al prompt.</p>
+    </div>
+    <div class="card">
+      <h4>2 · Activación condicional</h4>
+      <p style="margin-bottom:0">Skills que declaran requisitos de runtime (binarios en el PATH, variables de entorno, familia de sistema operativo) y se filtran al cargar. O que se activan cuando el modelo <em>toca</em> archivos que coinciden con un patrón. Esto último es estructuralmente superior a MCP, que trata todo servidor conectado simétricamente.</p>
+    </div>
+    <div class="card">
+      <h4>3 · Apareció una cadena de suministro</h4>
+      <p style="margin-bottom:0">Registries remotos en cuatro sistemas, con catálogos versionados. Y con distribución viene seguridad: niveles de confianza (incorporada / confiable / comunitaria), escaneo estático pre-instalación, cuarentena, verificación de procedencia, y validación de rutas contra path traversal.</p>
+    </div>
+    <div class="card">
+      <h4>4 · Aparecieron autores no humanos</h4>
+      <p style="margin-bottom:0">Un agente de revisión en background crea y parchea skills a partir de tareas completadas, con un curador manteniendo la colección. Otro sistema mina sesiones y emite parches para revisión. <strong>La capa de paquetes de capacidad está adquiriendo economía de gestor de paquetes a velocidad notable.</strong></p>
+    </div>
+  </div>
+
+  <h3>La convención que ganó</h3>
+  <p>Casi universal entre los nueve adoptantes: un directorio con el nombre de la skill, conteniendo un <code>SKILL.md</code> con frontmatter YAML (mínimo <code>name</code> y <code>description</code>). Y la ruta de descubrimiento canónica —<code>.agents/skills/</code>— la aceptan seis sistemas.</p>
+
+  <div class="card violet">
+    <h4>El dato de interoperabilidad más filoso del corpus</h4>
+    <p style="margin-bottom:0">Un sistema <strong>busca deliberadamente en el directorio de un competidor</strong>: su lista de descubrimiento incluye el directorio de skills de otro producto, así que las skills instaladas para ese otro producto funcionan sin modificación. Interoperabilidad por adopción, no por acuerdo.</p>
+  </div>
+
+  <div class="card accent">
+    <h4>La recomendación</h4>
+    <p style="margin-bottom:0">Usa <strong>skills para plantillas de capacidad</strong> (flujos de trabajo, conocimiento de dominio, recetas procedimentales) y <strong>MCP para integraciones externas</strong> (bases de datos, APIs internas) — <strong>en ese orden de prioridad</strong>. Si instalas skills de terceros, trátalas como paquetes: niveles de confianza, escaneo y cuarentena.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 12 completa, Tabla 10 y Observación 8.</div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="s10">
+  <div class="sec-num">Bloque 10</div>
+  <h2>Qué construir y qué no</h2>
+  <p class="lead">Las dieciocho recomendaciones del estudio, destiladas. Y el giro de contexto que las explica.</p>
+  <p class="glosario-link"><a href="#s0">¿Término raro? → Glosario</a></p>
+
+  <h3>Lo que sí</h3>
+  <table>
+    <tr><th style="width:6%">#</th><th>Recomendación</th><th style="width:30%">Evidencia</th></tr>
+    <tr><td>1</td><td>Empieza con un <code>while</code> lineal; migra a piezas conectables de control solo con 3+ políticas de turno</td><td>Un bucle de 50 líneas rinde en el rango frontera</td></tr>
+    <tr><td>2</td><td>Acoplamiento al proveedor: si no entregas un modelo, presupuesta metadata por modelo</td><td>Tres sistemas multi-proveedor alcanzan el menú completo de optimizaciones</td></tr>
+    <tr><td>3</td><td>Empieza con una sola herramienta bash; agrega por falla observada</td><td>Un sistema de una herramienta rinde en el rango frontera</td></tr>
+    <tr><td>4</td><td>Sobre ~15 herramientas, carga diferida</td><td>Reduce el prompt inicial ~40%</td></tr>
+    <tr><td>5</td><td>Contrato de edición por nivel de modelo; maneja el drift en la herramienta, nunca con números de línea</td><td>Los modelos derivan más en números de línea</td></tr>
+    <tr><td>6</td><td>Auto-descubre Markdown jerárquico, y lee también los nombres de los vecinos</td><td>11 de 11 sistemas convergieron ahí</td></tr>
+    <tr><td>7</td><td>Compactación por umbral, cola verbatim, fusión incremental, disparo reactivo</td><td>7 de 12 sistemas, con variantes que preservan decisiones tempranas</td></tr>
+    <tr><td>8</td><td><strong>No construyas RAG sobre código</strong></td><td>0 de 12 sistemas</td></tr>
+    <tr><td>9</td><td>Contexto semi-confiable: tres modos de aprobación con alcance de permiso</td><td>Dos implementaciones independientes</td></tr>
+    <tr><td>10</td><td>Contexto empresarial: sandbox de SO + política como código + trazas por agente</td><td>Dos implementaciones multiplataforma completas</td></tr>
+    <tr><td>11</td><td>Reglas de seguridad como datos, y un piso que sobrevive al modo sin restricciones</td><td>Doce patrones que nunca se ejecutan, con el bypass congelado al importar</td></tr>
+    <tr><td>12</td><td>Quédate single-agent hasta poder señalar la fase que gana en paralelo</td><td>~15× más tokens en multi-agente</td></tr>
+    <tr><td>13</td><td>Publica un servidor ACP; mantén los sub-agentes dentro del mismo proceso</td><td>6 de 12 publican ACP; 8 de 9 coordinan sub-agentes en proceso</td></tr>
+    <tr><td>14</td><td>Skills para capacidad, MCP para integración externa — en ese orden</td><td>9/12 vs 8/12 de adopción</td></tr>
+  </table>
+
+  <h3>Lo que no</h3>
+  <div class="grid2">
+    <div class="card bad">
+      <h4>15 · No uses un framework de agentes</h4>
+      <p style="margin-bottom:0">Cero de doce harnesses de producción usan LangChain, LangGraph, AutoGen, CrewAI, LlamaIndex, Pydantic AI, Genkit, ADK ni Semantic Kernel. La cita que resume el motivo: los frameworks "suelen crear capas extra de abstracción que ocultan los prompts y las respuestas subyacentes, haciéndolos más difíciles de depurar".</p>
+    </div>
+    <div class="card bad">
+      <h4>16 · No construyas RAG vectorial sobre código</h4>
+      <p style="margin-bottom:0">Cero de doce. Y si crees que tu dominio necesita recuperación semántica, <strong>primero demuestra</strong> que mejora sobre búsqueda por palabra clave + análisis de la estructura del código en un conjunto de tareas reservado. Después agregas la infraestructura.</p>
+    </div>
+    <div class="card bad">
+      <h4>17 · No envuelvas cada API como herramienta 1-a-1</h4>
+      <p style="margin-bottom:0">El error más común observado: herramientas que solo envuelven funcionalidad existente. Consolida en operaciones de alta señal en vez de exponer cada endpoint.</p>
+    </div>
+    <div class="card bad">
+      <h4>18 · No sobre-ingenierices la detección de bucles</h4>
+      <p style="margin-bottom:0">Los dos sistemas comerciales más grandes no la tienen y entregan calidad producción. Pero publica los topes baratos, que cuestan doce líneas.</p>
+    </div>
+  </div>
+
+  <h3>El contexto que explica todo esto: el giro a plataforma</h3>
+
+  <p>El paper cierra con una tesis: en el primer semestre de 2026 el harness <strong>completó un giro de herramienta a plataforma</strong>. No se adoptaron los frameworks — <strong>los reemplazaron</strong>. La evidencia está en el código y el mercado:</p>
+
+  <table>
+    <tr><th style="width:34%">Movimiento</th><th>Evidencia</th></tr>
+    <tr><td><strong>Los harnesses se volvieron SDKs importables</strong></td><td>Los productos de terminal ahora se importan como librería en Python y TypeScript, con el bucle, las herramientas y los sub-agentes incluidos</td></tr>
+    <tr><td><strong>Y los vendors de framework entregaron harnesses</strong></td><td>LangChain —el framework cuya ausencia el propio estudio documenta— construyó un harness y adoptó <em>independientemente</em> las convenciones del corpus: skills con divulgación progresiva, memoria en archivo Markdown, spawn de sub-agentes, planificación con lista de tareas</td></tr>
+    <tr><td><strong>Marketplaces</strong></td><td>Plugins con pipeline de instalación desde múltiples fuentes, e instalación aprobable por el propio modelo dentro de la conversación. Con las patologías de seguridad de toda tienda de aplicaciones.</td></tr>
+    <tr><td><strong>Costos de cambio</strong></td><td>Un proveedor incluye un importador de primera clase del estado en disco de su competidor: detecta sus archivos de sesión y los convierte, y ofrece traducir su archivo de configuración. Los vendors escriben importadores del almacén del otro — la etapa donde los datos del usuario se vuelven el foso.</td></tr>
+    <tr><td><strong>Gobernanza empresarial</strong></td><td>El stack de configuración se extiende <em>por encima</em> del usuario: preferencias gestionadas por gestión centralizada de equipos, archivos de sistema, y bundles entregados desde la nube empresarial que alimentan un motor de restricciones capaz de limitar lo que los niveles inferiores pueden configurar</td></tr>
+    <tr><td><strong>El agente como modelo</strong></td><td>Un sistema expone sus conversaciones por un gateway <em>compatible con OpenAI</em>: cualquier herramienta que sepa llamar un endpoint de chat puede manejar un agente</td></tr>
+    <tr><td><strong>La meta-capa</strong></td><td>Un meta-harness orquesta harnesses de once vendors distintos detrás de una sola API, reimplementando las partes caras (sandbox, política) y arbitrando las propietarias (hooks, almacenes de sesión). Prueba los harnesses como si fueran hardware, contra un banco de conformidad</td></tr>
+  </table>
+
+  <div class="card accent">
+    <h4>La conclusión que hay que llevarse</h4>
+    <p style="margin-bottom:0"><strong>La unidad competitiva del campo ya no es el bucle del agente; es la superficie de ecosistema alrededor.</strong> La capa que captura valor es la que <em>integra y gobierna</em>, no la que ejecuta.</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> sección 14 completa, sección 16, sección 17.1, Tablas 15 y 16.</div>
+</section>
+
+<!-- ============ FICHAS ============ -->
+<section id="fichas">
+  <div class="sec-num">Referencia</div>
+  <h2>Los 12 sistemas, uno por uno</h2>
+  <p class="lead">La clase nombra mucho estos sistemas sin presentarlos. Acá está cada uno en una línea: quién lo hizo, qué es, y qué enseña.</p>
+
+  <div class="card accent">
+    <p style="margin-bottom:0"><strong>Cómo leer esta tabla.</strong> Cuatro son de los grandes proveedores de modelos. Los otros ocho son de código abierto, y varios se pueden usar gratis. Todos hacen lo mismo a grandes rasgos —manejar un agente de trabajo— y difieren en <em>qué deciden hacer bien</em>. La columna "qué enseña" es lo que el estudio extrae de cada uno.</p>
+  </div>
+
+  <h3>Los cuatro de los grandes proveedores</h3>
+  <table>
+    <tr><th style="width:16%">Sistema</th><th style="width:20%">Quién lo hizo</th><th>Qué es</th><th style="width:26%">Qué enseña</th></tr>
+    <tr>
+      <td><strong>Claude Code</strong></td>
+      <td>Anthropic</td>
+      <td>El agente de trabajo de Anthropic, que corre en la terminal. Es el que más copian los demás.</td>
+      <td>Los permisos en tres capas; el truco de <strong>no cargar todas las herramientas al inicio</strong> sino solo las que hacen falta; y el ordenamiento del texto fijo para ahorrar dinero en cada llamada.</td>
+    </tr>
+    <tr>
+      <td><strong>Codex</strong></td>
+      <td>OpenAI</td>
+      <td>El agente de trabajo de OpenAI, escrito en Rust. El más grande del estudio: alrededor de 1,1 millón de líneas.</td>
+      <td>El <strong>aislamiento del sistema operativo</strong> más serio del grupo; y la memoria de largo plazo que <em>mantiene otro agente</em>, no código escrito por personas.</td>
+    </tr>
+    <tr>
+      <td><strong>Gemini CLI</strong></td>
+      <td>Google</td>
+      <td>El agente de Google, de código abierto. Fue el único en Google que publicó su código.</td>
+      <td>Los <strong>cuatro modos de aprobación</strong> (solo leer / preguntar / aprobar ediciones / sin restricciones) que después copiaron los demás; y el único que habla el protocolo entre agentes de distintos proveedores.</td>
+    </tr>
+    <tr>
+      <td><strong>Mistral Vibe</strong></td>
+      <td>Mistral AI</td>
+      <td>El agente de Mistral, en Python.</td>
+      <td>El <strong>control del turno como piezas conectables</strong>: tope de vueltas, tope de dinero, resumen automático — cada uno se conecta o desconecta sin tocar el motor.</td>
+    </tr>
+  </table>
+
+  <h3>Los ocho de código abierto</h3>
+  <table>
+    <tr><th style="width:16%">Sistema</th><th style="width:20%">Quién lo hizo</th><th>Qué es</th><th style="width:26%">Qué enseña</th></tr>
+    <tr>
+      <td><strong>OpenHands</strong></td>
+      <td>All-Hands-AI</td>
+      <td>Plataforma abierta de agentes. Reestructurado en 2026 para funcionar como librería.</td>
+      <td>Registrar <strong>cada acción como un evento persistente</strong>, lo que permite volver atrás y ramificar la conversación. Y haber sido de los primeros en <strong>hospedar agentes de la competencia</strong> como motores intercambiables.</td>
+    </tr>
+    <tr>
+      <td><strong>Aider</strong></td>
+      <td>Comunidad (Paul Gauthier)</td>
+      <td>Uno de los pioneros del rubro, hoy en modo mantenimiento comunitario.</td>
+      <td>Trece <strong>formatos distintos de edición de código</strong>, elegidos según el modelo; y el único que <strong>reordena el repositorio por relevancia</strong> para no mandar todo el código al modelo.</td>
+    </tr>
+    <tr>
+      <td><strong>Mini-SWE-Agent</strong></td>
+      <td>Princeton / Stanford</td>
+      <td>El más pequeño: alrededor de 100 líneas. Es intencionalmente minimalista, sirve para investigar.</td>
+      <td>Que <strong>100 líneas alcanzan</strong> para tener un agente que funciona, y que meterle más código no mejora el resultado en la tarea.</td>
+    </tr>
+    <tr>
+      <td><strong>Hermes</strong></td>
+      <td>Nous Research</td>
+      <td>El agente que crece con el usuario. Corre en terminal, web y en 28 canales de mensajería a la vez.</td>
+      <td>Que un <strong>piso de comandos prohibidos sobreviva al modo sin restricciones</strong>; la memoria deliberadamente chica y rápida; y que <strong>el agente escriba sus propias habilidades</strong> a partir de las tareas que completa.</td>
+    </tr>
+    <tr>
+      <td><strong>Pi</strong></td>
+      <td>Mario Zechner</td>
+      <td>La apuesta contraria: núcleo mínimo, todo lo demás como extensión. Sin aislamiento, sin permisos propios, por decisión declarada.</td>
+      <td>El argumento más honesto del estudio sobre <strong>por qué NO poner un aislamiento parcial</strong>: es "fácil de malinterpretar como una frontera de seguridad". Y el historial de conversación como árbol ramificable.</td>
+    </tr>
+    <tr>
+      <td><strong>OpenCode</strong></td>
+      <td>Anomaly (ex SST)</td>
+      <td>El agente de código abierto con más estrellas en GitHub. Arquitectura de servidor con múltiples interfaces.</td>
+      <td>Los permisos <strong>derivados de analizar el comando</strong> antes de autorizarlo: autoriza "consulta el estado", no todo el comando. Y leer el historial con coincidencia de palabras, sin buscar por significado.</td>
+    </tr>
+    <tr>
+      <td><strong>OpenClaw</strong></td>
+      <td>Comunidad</td>
+      <td>Asistente personal multitudinario, no un agente de código. Se incluye como contraste: delega el trabajo a otros agentes.</td>
+      <td>La arquitectura de extensiones más madura del grupo; y el <strong>único con búsqueda por significado activada por defecto</strong> — pero solo para recordar conversaciones, nunca para leer código.</td>
+    </tr>
+    <tr>
+      <td><strong>Omnigent</strong><br><em>(no es un agente)</em></td>
+      <td>Databricks</td>
+      <td>No es un agente sino un <strong>coordinador de agentes</strong>: maneja 11 agentes de distintos proveedores detrás de una sola interfaz.</td>
+      <td>Que ya existe una capa por encima de los agentes que <strong>reimplementa lo caro y arbitra lo propietario</strong>. Es la evidencia más fuerte del giro a plataforma.</td>
+    </tr>
+  </table>
+
+  <div class="card violet">
+    <h4>Por qué son doce y no once</h4>
+    <p style="margin-bottom:0">El estudio analiza <strong>11 agentes</strong> más <strong>Omnigent</strong>, que se incluye aparte porque no es un agente: es la capa que los coordina. Es una distinción importante y el estudio la trata con cuidado — evaluar a Omnigent con los mismos criterios que a los agentes sería un error de categoría. Cuando en la clase se dice "12 sistemas", se cuentan los once más este.</p>
+  </div>
+
+  <div class="card ok">
+    <h4>Y si alguien pregunta "¿cuál uso?"</h4>
+    <p style="margin-bottom:0">El estudio <strong>no responde esa pregunta</strong> y advierte explícitamente contra responderla: no compara rendimiento, solo estructura. Lo que sí se puede decir con respaldo: los cuatro de los grandes proveedores son los más elaborados en seguridad y están más atados a su modelo; los de código abierto se pueden usar gratis y son más flexibles de proveedor; y el más simple del grupo rinde igual en tareas que el más complejo. La elección depende de qué tan crítico sea el entorno donde va a operar — no de cuál es "mejor".</p>
+  </div>
+
+  <div class="src"><strong>Fuente:</strong> arXiv:2609.00006v1, Tablas 2, 3 y 4, secciones 3.7 y 5. Los conteos de estrellas y versiones están fechados a julio de 2026 y caducan rápido; las descripciones de arquitectura son las que se mantienen.</div>
+</section>
+
+<!-- ============ TESTEO ============ -->
+<section id="testeo">
+  <div class="sec-num">Demostrar aprendizaje</div>
+  <h2>Testeo</h2>
+  <p class="lead">Ocho preguntas. Al responder, cada una explica el por qué. El objetivo no es la nota: es poder explicar cada decisión a alguien más.</p>
+
+  <div id="quiz"></div>
+  <button id="btnCheck" onclick="checkTest()">Revisar respuestas</button>
+  <button class="ghost" onclick="location.reload()" style="margin-left:10px">Reiniciar</button>
+  <div id="score"></div>
+</section>
+
+<!-- ============ FUENTES ============ -->
+<section id="fuentes">
+  <div class="sec-num">Referencias</div>
+  <h2>Fuentes</h2>
+
+  <div class="card">
+    <h4>Documento base</h4>
+    <p style="margin-bottom:0">Barbaste, P., Darrigol, T., Vu, G., Wiltberger, T. <em>Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents — A Source-Code Study of Eleven Systems.</em> arXiv:2609.00006v1 [cs.SE], 15 de julio de 2026. Inclusive Brains / Wavestone AI Lab.<br><br>
+    <a href="https://arxiv.org/abs/2609.00006">arxiv.org/abs/2609.00006</a></p>
+  </div>
+
+  <div class="card">
+    <h4>Qué es y qué no es este documento</h4>
+    <ul style="margin-bottom:0">
+      <li><strong>Es</strong> un análisis de código fuente, no de rendimiento. Los autores lo declaran: "no afirmamos saber qué tan rápidos son estos sistemas; afirmamos saber cómo están estructurados".</li>
+      <li><strong>No rankea.</strong> Renunció explícitamente a comparar benchmarks y retiró las cifras auto-reportadas de su tabla comparativa por no ser comparables.</li>
+      <li><strong>Cuidado con citar cifras de inventario.</strong> Los conteos (herramientas, adopción de estándares, pins de versión) caducan en semanas. Las afirmaciones estructurales —la anatomía, la taxonomía del bucle, las dos ausencias— son las que han aguantado.</li>
+      <li><strong>Fue escrito con asistencia de IA</strong>, declarada explícitamente por los autores. Los hallazgos fueron verificados contra los repositorios antes de publicarse; los módulos, herramientas y versiones citados son verificables de forma independiente.</li>
+      <li><strong>El análisis de un sistema comercial es el eslabón débil en reproducibilidad</strong>: se apoya en un snapshot de código circulante, no en un release oficial.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4>Documentos complementarios de esta carpeta</h4>
+    <ul style="margin-bottom:0">
+      <li><code>acp-analisis.md</code> — Viabilidad de implementar un servidor ACP en los agentes CONECTA: qué es, los tres roles, la superficie del protocolo y la secuencia mínima.</li>
+      <li><code>anexo-conecta.md</code> — Anexo comercial para propuestas: lo que la industria ya validó, aplicado a operación industrial.</li>
+      <li><strong>Skill de Hermes:</strong> <code>harness-engineering-agentes</code> (categoría engineering) — el destilado reutilizable, cargable en cualquier sesión futura de diseño o auditoría de agentes.</li>
+    </ul>
+  </div>
+
+  <div class="src" style="border-top:none;padding-top:0">Clase generada el 6 de octubre de 2026. Base de datos verificada: 1.667 líneas de texto extraído del PDF (arXiv:2609.00006v1), leídas íntegras.</div>
+</section>
+
+</main>
+</div>
+
+<script>
+const QS = [
+  {
+    q: "Un cliente te pregunta: «¿y usan LangChain?». Según el estudio, ¿cuál es la respuesta técnicamente correcta?",
+    opts: [
+      "Sí, es el estándar de la industria para orquestar agentes",
+      "No, y tampoco lo usa ninguno de los 12 sistemas de producción auditados",
+      "Depende del modelo que se use por debajo",
+      "Solo para la capa de memoria, no para el bucle"
+    ],
+    ok: 1,
+    why: "La ausencia de frameworks es una de las dos ausencias verificadas del estudio: 0 de 12 sistemas los importan, incluyendo casos donde el propio vendor tiene un framework disponible (Gemini CLI no usa los de Google). La razón es operativa: las capas de abstracción ocultan el prompt y el registro de lo que hizo el agente, justo cuando el agente está modificando activos reales."
+  },
+  {
+    q: "El piso de un agente funcional está alrededor de 100 líneas. ¿Qué implica eso para un proyecto?",
+    opts: [
+      "Que el sistema más simple siempre es el mejor",
+      "Que la sofisticación del bucle no predice el éxito, y el esfuerzo debe ir a seguridad, recuperación y extensibilidad",
+      "Que no vale la pena invertir en arquitectura",
+      "Que hay que usar un modelo más grande en vez de más código"
+    ],
+    ok: 1,
+    why: "El estudio lo dice literalmente: la sofisticación del bucle no predice el desempeño, pero sí predice la preparación para producción. Lo que separa el piso de un sistema real es seguridad, recuperación, manejo de costo y extensibilidad — no completar la tarea. Cuidado: el piso es bajo para completar tareas, no para operar en un entorno crítico."
+  },
+  {
+    q: "Tienes un corpus de 200 manuales técnicos y 40.000 tags de planta. ¿Dónde aplica la lección del estudio sobre RAG?",
+    opts: [
+      "Sobre los dos: indexar todo vectorialmente para consultas semánticas",
+      "Sobre los tags no; los manuales sí pueden beneficiarse de recuperación semántica",
+      "Sobre ninguno: el estudio rechaza toda recuperación vectorial",
+      "Solo sobre los tags, porque cambian más seguido"
+    ],
+    ok: 1,
+    why: "El estudio encontró cero uso de embeddings para leer código —estructura determinística, cambia minuto a minuto, y ya existe ripgrep—; pero sí encontró embeddings para memoria de conversación, y los propios autores citan documentación-lookup como un caso donde la recuperación sí aporta. La regla transferible es: no construyas una copia indexada cuando la fuente es consultable (los tags viven en el RTU/UNS y se leen de ahí). Donde el documento ES la fuente —normativa, manuales, cartas— el RAG es la herramienta correcta."
+  },
+  {
+    q: "Un sistema del corpus tiene 640 mil líneas de Python y cero primitivas de aislamiento de sistema operativo. ¿Qué demuestra eso?",
+    opts: [
+      "Que el aislamiento de SO no sirve para nada",
+      "Que el sandbox es una decisión de diseño, no una consecuencia del tamaño del sistema",
+      "Que los sistemas grandes son intrínsecamente inseguros",
+      "Que el aislamiento se reemplaza por un prompt de seguridad"
+    ],
+    ok: 1,
+    why: "La edición anterior del estudio veía una correlación entre tamaño y sandbox y la leía como estructural. El corpus ampliado la falsificó: el tamaño predice ALGUNA inversión grande en seguridad, no específicamente un sandbox. Ese sistema gasta su presupuesto en defensa contra amenazas de contenido (escaneo de inyección en archivos de contexto, memoria, descripciones de herramientas, instalación de skills) en vez de en aislación. La lección de decisión: elige dónde gastas según tu modelo de amenaza, no según tu tamaño."
+  },
+  {
+    q: "Estás diseñando un agente que leerá medición y estados de una subestación, y reportará al operador. ¿Qué pones en la primera versión?",
+    opts: [
+      "Cuatro agentes especializados en paralelo, uno por sistema",
+      "Un agente, una herramienta de lectura, sin escritura, y un límite de pasos",
+      "Siete sub-agentes con orquestador y memoria compartida",
+      "Un índice vectorial de todos los puntos de la planta"
+    ],
+    ok: 1,
+    why: "Es la recomendación 12 del estudio (quédate single-agent hasta que puedas señalar una fase que gane en paralelo) más las recomendaciones 3 y 18 (empieza con una herramienta, publica los topes baratos). Los sistemas multi-agente consumen ~15× más tokens que un chat base, y el propio estudio observa que los patrones multi-agente se usan mayoritariamente en exploración en anchura, no en operación. Y el índice vectorial cae en la ausencia número dos."
+  },
+  {
+    q: "¿Por qué el estudio insiste en que las reglas de seguridad sean un archivo de política y no código imperativo?",
+    opts: [
+      "Porque es más rápido de ejecutar",
+      "Porque sobreviven refactors y son auditables aparte de la implementación del bucle",
+      "Porque así el modelo puede leerlas en el prompt",
+      "Porque ocupan menos líneas de código"
+    ],
+    ok: 1,
+    why: "La recomendación 11 lo dice así: las políticas-como-código sobreviven refactors y son auditables independientemente de la implementación del bucle. Un cliente industrial puede revisar la lista de lo prohibido sin leer el agente. El ejemplo extremo del corpus: un piso de doce patrones que nunca se ejecutan, con la variable del modo sin restricciones congelada al importar el módulo — para que una skill con inyección no pueda activarla en runtime."
+  },
+  {
+    q: "Un colega propone buscar en las conversaciones anteriores con coincidencia de palabras en vez de búsqueda por significado (embeddings), a escala de 600 mil líneas de código. ¿Es razonable?",
+    opts: [
+      "No, los embeddings siempre encuentran mejor lo que uno busca",
+      "Sí: un sistema del corpus lo hace así, sin ninguna llamada al modelo, y reserva los embeddings a plugins opcionales",
+      "No, ese tipo de búsqueda no escala más allá de unos miles de conversaciones",
+      "Solo si las conversaciones están en inglés"
+    ],
+    ok: 1,
+    why: "Está en el catálogo de patrones del estudio, dentro de la arquitectura de memoria de uno de los sistemas más grandes del corpus: búsqueda por coincidencia de palabras sobre un índice liviano de la base de datos local, mantenido automáticamente, y la frase textual del estudio es «sin llamadas a LLM en ninguna parte». Los embeddings existen solo en plugins de memoria opcionales. La lección transferible: lo determinístico antes que lo semántico cuando alcanza —más barato, reproducible y sin inventar."
+  },
+  {
+    q: "El estudio documenta que un proveedor adoptó el vocabulario de eventos de hooks de su competidor casi palabra por palabra. ¿Qué significa eso para un proyecto que recién empieza?",
+    opts: [
+      "Que hay que esperar a que el estándar se estabilice antes de elegir",
+      "Que elegir el diseño que ya ganó adopción reduce el riesgo, porque los estándares de facto se copian entre competidores",
+      "Que conviene inventar una interfaz propia para diferenciarse",
+      "Que los hooks son irrelevantes si no usas plugins"
+    ],
+    ok: 1,
+    why: "El estudio documenta ese caso como 'la adopción más clara de una interfaz de extensión ajena como estándar de facto' del corpus, y lo enmarca en un patrón más amplio: otro sistema lee deliberadamente el directorio de skills de su competidor, y otro lee su formato de manifiesto de plugins. La lección práctica: en un campo donde la convergencia se está volviendo imitación, alinearse con lo que ya ganó adopción es más barato que diferenciarse en la interfaz."
+  }
+];
+
+let html = "";
+QS.forEach((item, i) => {
+  html += '<div class="q" id="q' + i + '">';
+  html += '<div class="qh">' + (i+1) + '. ' + item.q + '</div>';
+  item.opts.forEach((o, j) => {
+    html += '<label><input type="radio" name="q' + i + '" value="' + j + '">' + o + '</label>';
+  });
+  html += '<div class="why" id="w' + i + '"><strong>Por qué:</strong> ' + item.why + '</div>';
+  html += '</div>';
+});
+document.getElementById("quiz").innerHTML = html;
+
+function checkTest(){
+  let score = 0, answered = 0;
+  QS.forEach((item, i) => {
+    const box = document.getElementById("q" + i);
+    const labels = box.querySelectorAll("label");
+    const sel = box.querySelector('input[name="q' + i + '"]:checked');
+    labels.forEach(l => l.classList.remove("correct", "wrong"));
+    if (!sel) return;
+    answered++;
+    labels.forEach((l, j) => {
+      if (j === item.ok) l.classList.add("correct");
+      if (j === parseInt(sel.value) && parseInt(sel.value) !== item.ok) l.classList.add("wrong");
+    });
+    if (parseInt(sel.value) === item.ok) score++;
+    document.getElementById("w" + i).classList.add("show");
+  });
+  const pct = Math.round(100 * score / QS.length);
+  let msg = "";
+  if (pct === 100) msg = "Dominio completo. Puedes explicar cada decisión a otra persona.";
+  else if (pct >= 75) msg = "Base sólida. Repasa los bloques de las preguntas que fallaron.";
+  else if (pct >= 50) msg = "Entendiste la idea general. Vuelve a los bloques 2, 7 y 10.";
+  else msg = "Conviene releer la clase completa antes de usar esto en una propuesta.";
+  const s = document.getElementById("score");
+  s.innerHTML = '<span class="n">' + score + ' / ' + QS.length + '</span> &nbsp;(' + pct + '%) &nbsp;— ' + msg +
+                '<div style="margin-top:10px;font-size:14px;color:#94a3b8">Respondidas ' + answered + ' de ' + QS.length + '. Cada respuesta despliega su explicación arriba.</div>';
+  s.classList.add("show");
+  s.scrollIntoView({behavior:"smooth", block:"center"});
+}
+</script>
+</body>
+</html>
