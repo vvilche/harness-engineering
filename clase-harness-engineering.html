@@ -396,7 +396,7 @@ h2 span.term{font-size:22px; font-weight:400; color:#94a3b8}
   <p>Lo que usan <em>en lugar</em> de RAG:</p>
   <table>
     <tr><th style="width:32%">Mecanismo</th><th>Quién lo usa</th></tr>
-    <tr><td><strong>búsqueda por palabra clave</strong> y búsqueda por palabra clave</td><td>Casi todos — Claude Code, OpenHands, Gemini CLI, Mistral Vibe, Hermes, Pi, OpenCode</td></tr>
+    <tr><td><strong>búsqueda por palabra clave</strong></td><td>Casi todos — Claude Code, OpenHands, Gemini CLI, Mistral Vibe, Hermes, Pi, OpenCode</td></tr>
     <tr><td><strong>análisis de la estructura del código</strong> (parseo estructural)</td><td>Mistral Vibe (validación de bash), OpenCode (permisos de comandos), Aider (extracción de símbolos para su mapa del repositorio)</td></tr>
     <tr><td><strong>Archivos Markdown auto-descubiertos</strong></td><td>Los 11 sistemas con contexto de repositorio convergieron en este patrón</td></tr>
     <tr><td><strong>Búsqueda léxica SQLite índice de búsqueda</strong></td><td>Hermes, para historial de sesiones a escala de 642 mil líneas, sin ninguna llamada a LLM</td></tr>
@@ -739,7 +739,7 @@ h2 span.term{font-size:22px; font-weight:400; color:#94a3b8}
     </tr>
     <tr>
       <td><strong>¿Puede hacer varias cosas a la vez?</strong><br><em>concurrencia</em></td>
-      <td>Si el agente necesita leer tres archivos, ¿espera uno por uno o los pide simultáneos? Y si intenta escribir dos veces el mismo archivo a la vez, ¿qué pasa?</td>
+      <td>Si el agente necesita leer tres archivos, ¿espera uno por uno o los pide simultáneamente? Y si intenta escribir dos veces el mismo archivo a la vez, ¿qué pasa?</td>
       <td>Del más simple (todo secuencial, no hay riesgo) al más elaborado: solo se ejecutan en paralelo las acciones marcadas como seguras (leer nunca rompe nada, escribir sí); y cuando sí se serializan, se hace <strong>por recurso</strong> — dos lecturas distintas corren juntas, pero dos escrituras al mismo archivo esperan turno.</td>
     </tr>
     <tr>
@@ -755,7 +755,7 @@ h2 span.term{font-size:22px; font-weight:400; color:#94a3b8}
   </table>
 
   <h3>Y acá está la sorpresa</h3>
-  <p>Podrías esperar que el sistema con el motor más elaborado rinda mejor. <strong>No ocurre.</strong> El sistema con el motor más simple del estudio —un ciclo lineal escrito en unas 50 líneas, sin estado, sin concurrencia, sin detección de bucles— reporta resultados en el <em>mismo rango</em> que uno con un motor que registra cada acción como un evento que dedica mucho más código solo a manejar el ciclo.</p>
+  <p>Podrías esperar que el sistema con el motor más elaborado rinda mejor. <strong>No ocurre.</strong> El sistema con el motor más simple del estudio —un ciclo lineal escrito en unas 50 líneas, sin estado, sin concurrencia, sin detección de bucles— reporta resultados en el <em>mismo rango</em> que uno con un motor que registra cada acción como un evento y que dedica mucho más código solo a manejar el ciclo.</p>
 
   <div class="card warn">
     <h4>Qué significa esto, con cuidado</h4>
@@ -1351,89 +1351,89 @@ const QS = [
   {
     q: "Un cliente te pregunta: «¿y usan LangChain?». Según el estudio, ¿cuál es la respuesta técnicamente correcta?",
     opts: [
-      "Sí, es el estándar de la industria para orquestar agentes",
-      "No, y tampoco lo usa ninguno de los 12 sistemas de producción auditados",
+      "Solo para la capa de memoria, no para el bucle",
       "Depende del modelo que se use por debajo",
-      "Solo para la capa de memoria, no para el bucle"
+      "No, y tampoco lo usa ninguno de los 12 sistemas de producción auditados",
+      "Sí, es el estándar de la industria para orquestar agentes"
     ],
-    ok: 1,
+    ok: 2,
     why: "La ausencia de frameworks es una de las dos ausencias verificadas del estudio: 0 de 12 sistemas los importan, incluyendo casos donde el propio vendor tiene un framework disponible (Gemini CLI no usa los de Google). La razón es operativa: las capas de abstracción ocultan el prompt y el registro de lo que hizo el agente, justo cuando el agente está modificando activos reales."
   },
   {
     q: "El piso de un agente funcional está alrededor de 100 líneas. ¿Qué implica eso para un proyecto?",
     opts: [
+      "Que no vale la pena invertir en arquitectura",
       "Que el sistema más simple siempre es el mejor",
       "Que la sofisticación del bucle no predice el éxito, y el esfuerzo debe ir a seguridad, recuperación y extensibilidad",
-      "Que no vale la pena invertir en arquitectura",
       "Que hay que usar un modelo más grande en vez de más código"
     ],
-    ok: 1,
+    ok: 2,
     why: "El estudio lo dice literalmente: la sofisticación del bucle no predice el desempeño, pero sí predice la preparación para producción. Lo que separa el piso de un sistema real es seguridad, recuperación, manejo de costo y extensibilidad — no completar la tarea. Cuidado: el piso es bajo para completar tareas, no para operar en un entorno crítico."
   },
   {
     q: "Tienes un corpus de 200 manuales técnicos y 40.000 tags de planta. ¿Dónde aplica la lección del estudio sobre RAG?",
     opts: [
-      "Sobre los dos: indexar todo vectorialmente para consultas semánticas",
-      "Sobre los tags no; los manuales sí pueden beneficiarse de recuperación semántica",
       "Sobre ninguno: el estudio rechaza toda recuperación vectorial",
-      "Solo sobre los tags, porque cambian más seguido"
+      "Solo sobre los tags, porque cambian más seguido",
+      "Sobre los dos: indexar todo vectorialmente para consultas semánticas",
+      "Sobre los tags no; los manuales sí pueden beneficiarse de recuperación semántica"
     ],
-    ok: 1,
+    ok: 3,
     why: "El estudio encontró cero uso de embeddings para leer código —estructura determinística, cambia minuto a minuto, y ya existe ripgrep—; pero sí encontró embeddings para memoria de conversación, y los propios autores citan documentación-lookup como un caso donde la recuperación sí aporta. La regla transferible es: no construyas una copia indexada cuando la fuente es consultable (los tags viven en el RTU/UNS y se leen de ahí). Donde el documento ES la fuente —normativa, manuales, cartas— el RAG es la herramienta correcta."
   },
   {
     q: "Un sistema del corpus tiene 640 mil líneas de Python y cero primitivas de aislamiento de sistema operativo. ¿Qué demuestra eso?",
     opts: [
-      "Que el aislamiento de SO no sirve para nada",
       "Que el sandbox es una decisión de diseño, no una consecuencia del tamaño del sistema",
       "Que los sistemas grandes son intrínsecamente inseguros",
-      "Que el aislamiento se reemplaza por un prompt de seguridad"
+      "Que el aislamiento se reemplaza por un prompt de seguridad",
+      "Que el aislamiento de SO no sirve para nada"
     ],
-    ok: 1,
+    ok: 0,
     why: "La edición anterior del estudio veía una correlación entre tamaño y sandbox y la leía como estructural. El corpus ampliado la falsificó: el tamaño predice ALGUNA inversión grande en seguridad, no específicamente un sandbox. Ese sistema gasta su presupuesto en defensa contra amenazas de contenido (escaneo de inyección en archivos de contexto, memoria, descripciones de herramientas, instalación de skills) en vez de en aislación. La lección de decisión: elige dónde gastas según tu modelo de amenaza, no según tu tamaño."
   },
   {
     q: "Estás diseñando un agente que leerá medición y estados de una subestación, y reportará al operador. ¿Qué pones en la primera versión?",
     opts: [
-      "Cuatro agentes especializados en paralelo, uno por sistema",
       "Un agente, una herramienta de lectura, sin escritura, y un límite de pasos",
+      "Un índice vectorial de todos los puntos de la planta",
       "Siete sub-agentes con orquestador y memoria compartida",
-      "Un índice vectorial de todos los puntos de la planta"
+      "Cuatro agentes especializados en paralelo, uno por sistema"
     ],
-    ok: 1,
+    ok: 0,
     why: "Es la recomendación 12 del estudio (quédate single-agent hasta que puedas señalar una fase que gane en paralelo) más las recomendaciones 3 y 18 (empieza con una herramienta, publica los topes baratos). Los sistemas multi-agente consumen ~15× más tokens que un chat base, y el propio estudio observa que los patrones multi-agente se usan mayoritariamente en exploración en anchura, no en operación. Y el índice vectorial cae en la ausencia número dos."
   },
   {
     q: "¿Por qué el estudio insiste en que las reglas de seguridad sean un archivo de política y no código imperativo?",
     opts: [
       "Porque es más rápido de ejecutar",
-      "Porque sobreviven refactors y son auditables aparte de la implementación del bucle",
       "Porque así el modelo puede leerlas en el prompt",
+      "Porque sobreviven refactors y son auditables aparte de la implementación del bucle",
       "Porque ocupan menos líneas de código"
     ],
-    ok: 1,
+    ok: 2,
     why: "La recomendación 11 lo dice así: las políticas-como-código sobreviven refactors y son auditables independientemente de la implementación del bucle. Un cliente industrial puede revisar la lista de lo prohibido sin leer el agente. El ejemplo extremo del corpus: un piso de doce patrones que nunca se ejecutan, con la variable del modo sin restricciones congelada al importar el módulo — para que una skill con inyección no pueda activarla en runtime."
   },
   {
     q: "Un colega propone buscar en las conversaciones anteriores con coincidencia de palabras en vez de búsqueda por significado (embeddings), a escala de 600 mil líneas de código. ¿Es razonable?",
     opts: [
-      "No, los embeddings siempre encuentran mejor lo que uno busca",
-      "Sí: un sistema del corpus lo hace así, sin ninguna llamada al modelo, y reserva los embeddings a plugins opcionales",
       "No, ese tipo de búsqueda no escala más allá de unos miles de conversaciones",
-      "Solo si las conversaciones están en inglés"
+      "Solo si las conversaciones están en inglés",
+      "Sí: un sistema del corpus lo hace así, sin ninguna llamada al modelo, y reserva los embeddings a plugins opcionales",
+      "No, los embeddings siempre encuentran mejor lo que uno busca"
     ],
-    ok: 1,
+    ok: 2,
     why: "Está en el catálogo de patrones del estudio, dentro de la arquitectura de memoria de uno de los sistemas más grandes del corpus: búsqueda por coincidencia de palabras sobre un índice liviano de la base de datos local, mantenido automáticamente, y la frase textual del estudio es «sin llamadas a LLM en ninguna parte». Los embeddings existen solo en plugins de memoria opcionales. La lección transferible: lo determinístico antes que lo semántico cuando alcanza —más barato, reproducible y sin inventar."
   },
   {
     q: "El estudio documenta que un proveedor adoptó el vocabulario de eventos de hooks de su competidor casi palabra por palabra. ¿Qué significa eso para un proyecto que recién empieza?",
     opts: [
-      "Que hay que esperar a que el estándar se estabilice antes de elegir",
       "Que elegir el diseño que ya ganó adopción reduce el riesgo, porque los estándares de facto se copian entre competidores",
+      "Que los hooks son irrelevantes si no usas plugins",
       "Que conviene inventar una interfaz propia para diferenciarse",
-      "Que los hooks son irrelevantes si no usas plugins"
+      "Que hay que esperar a que el estándar se estabilice antes de elegir"
     ],
-    ok: 1,
+    ok: 0,
     why: "El estudio documenta ese caso como 'la adopción más clara de una interfaz de extensión ajena como estándar de facto' del corpus, y lo enmarca en un patrón más amplio: otro sistema lee deliberadamente el directorio de skills de su competidor, y otro lee su formato de manifiesto de plugins. La lección práctica: en un campo donde la convergencia se está volviendo imitación, alinearse con lo que ya ganó adopción es más barato que diferenciarse en la interfaz."
   }
 ];
