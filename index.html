@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Engineering — cómo se construye un agente de IA</title>
+<meta name="description" content="Clases sobre la anatomía de un agente de IA: los 7 subsistemas, las decisiones de diseño de los 12 harnesses de producción auditados en arXiv:2609.00006v1, y por qué el ensamblaje pesa más que el modelo.">
+<meta name="author" content="Victor Vilche">
+<meta property="og:title" content="Harness Engineering — cómo se construye un agente de IA">
+<meta property="og:description" content="Anatomía de un agente, los 7 subsistemas y las decisiones de diseño de los 12 harnesses de producción auditados en arXiv:2609.00006v1.">
+<meta property="og:type" content="website">
+<style>
+:root{
+  --bg:#f8fafc; --white:#fff; --dark:#0f172a; --dark2:#1e293b; --border:#e2e8f0;
+  --text:#0f172a; --muted:#64748b; --accent:#2563eb; --accent-soft:#eff6ff;
+  --ok:#16a34a; --violet:#7c3aed; --violet-soft:#f5f3ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'IBM Plex Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:940px;margin:0 auto;padding:0 28px}
+header{background:var(--dark);color:#e2e8f0;padding:54px 0 46px}
+header .brand{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#64748b;font-weight:600}
+header h1{font-size:34px;font-weight:400;line-height:1.2;letter-spacing:-.015em;color:#f8fafc;margin:12px 0 14px;max-width:22ch}
+header p{color:#94a3b8;max-width:70ch;font-size:16.5px}
+main{padding:44px 0 100px}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:34px 0 16px}
+.cards{display:grid;gap:16px}
+a.card{
+  display:block;background:var(--white);border:1px solid var(--border);border-radius:12px;
+  padding:24px 26px;text-decoration:none;color:inherit;transition:.15s;
+}
+a.card:hover{border-color:var(--accent);box-shadow:0 6px 24px rgba(37,99,235,.10);transform:translateY(-2px)}
+.card .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+.card .tag.g{color:var(--violet)}
+.card h3{font-size:22px;font-weight:600;margin:8px 0 8px;line-height:1.28;letter-spacing:-.01em}
+.card p{color:#334155;font-size:15.5px;max-width:68ch}
+.card .meta{margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.card .meta b{font-weight:600;color:#334155}
+.docs{margin-top:14px;display:grid;gap:10px}
+a.doc{
+  display:flex;align-items:baseline;gap:12px;background:var(--white);border:1px solid var(--border);
+  border-radius:10px;padding:15px 18px;text-decoration:none;color:inherit;transition:.15s;
+}
+a.doc:hover{border-color:var(--accent);background:var(--accent-soft)}
+a.doc .f{font-family:'IBM Plex Mono','SF Mono',Menlo,monospace;font-size:13px;color:var(--accent);font-weight:600;min-width:180px}
+a.doc .d{font-size:14px;color:#334155}
+footer{border-top:1px solid var(--border);margin-top:46px;padding-top:22px;font-size:13.5px;color:var(--muted)}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">CONECTA · Ingeniería de agentes</div>
+    <h1>Cómo se construye un agente de IA</h1>
+    <p>Anatomía, patrones y decisiones de diseño, con base en el estudio de <b>~4 millones de líneas de
+    código</b> de los <b>12 harnesses de producción</b> auditados en arXiv:2609.00006v1. Material de clase,
+    más el anexo de aplicación industrial.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h2>Clases</h2>
+  <div class="cards">
+
+    <a class="card" href="clase-harness-engineering.html">
+      <div class="tag">Clase 1 · ~47 min de lectura</div>
+      <h3>Anatomía de un agente: los siete subsistemas y las decisiones que importan</h3>
+      <p>Qué es un agente y qué no. Las dos ausencias del corpus (ningún framework, ninguna búsqueda
+      vectorial sobre código). Los 7 subsistemas que todo harness resuelve, el piso y el techo de lo que
+      hay que construir, el bucle, memoria, seguridad, los 6 patrones de orquestación, y los 12 sistemas
+      uno por uno.</p>
+      <div class="meta"><span><b>14</b> secciones</span><span><b>8</b> ejercicios de testeo</span><span>Quiz interactivo</span><span>Glosario</span></div>
+    </a>
+
+    <a class="card" href="clase-multientorno-industrial.html">
+      <div class="tag g">Clase 2 · ~15 min de lectura</div>
+      <h3>El mismo modelo, otra herramienta: por qué el ensamblaje pesa más</h3>
+      <p>Una nota de benchmark describe al modelo <em>dentro de esa herramienta</em>, no al modelo en
+      general. Qué cambia cuando el mismo modelo se monta sobre otro harness, y por qué esa diferencia es
+      la que se ve en terreno.</p>
+      <div class="meta"><span><b>8</b> secciones</span><span><b>8</b> ejercicios de testeo</span><span>Quiz interactivo</span></div>
+    </a>
+
+  </div>
+
+  <h2>Documentos de trabajo</h2>
+  <div class="docs">
+    <a class="doc" href="anexo-conecta.md">
+      <span class="f">anexo-conecta.md</span>
+      <span class="d">Anexo de propuesta — Arquitectura de agentes industriales: los 7 subsistemas aplicados a planta, 12 patrones directamente aplicables, seguridad y qué NO proponer.</span>
+    </a>
+    <a class="doc" href="acp-analisis.md">
+      <span class="f">acp-analisis.md</span>
+      <span class="d">Viabilidad de exponer los agentes CONECTA como servidores ACP: los 3 roles arquitectónicos, la recomendación 13 del paper y el riesgo de cada opción.</span>
+    </a>
+    <a class="doc" href="https://arxiv.org/abs/2609.00006">
+      <span class="f">arXiv:2609.00006v1</span>
+      <span class="d">Barbaste, Darrigol, Vu, Wiltberger. <em>Harness Engineering: Anatomy, Architecture, and Evolution of Coding Agents.</em> Julio 2026 — fuente única de las cifras de las clases.</span>
+    </a>
+  </div>
+
+  <footer>
+    Las cifras de adopción citadas (ej. 9 de 12 usan skills, 8 de 12 usan MCP) están fechadas a julio de 2026:
+    el estudio advierte que las afirmaciones de inventario caducan en semanas, mientras las estructurales
+    —anatomía y ausencias— se han mantenido.
+  </footer>
+
+</main>
+</body>
+</html>
